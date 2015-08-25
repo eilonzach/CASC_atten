@@ -6,7 +6,7 @@
 
 datawind = [-200 1800]; % time window in seconds after event to [start end]
 phases = 'P,S,PKS,SKS';
-overwrite = false;
+overwrite = true;
 
 % antelope db details
 dbdir = '/Users/zeilon/Work/CASCADIA/CAdb/'; % needs final slash
@@ -32,7 +32,7 @@ dbsi = dblookup_table(db,'site');
 nstas = dbnrecs(dbsi);
 dbclose(db);
 
-for ie = 61:85 % 1:norids
+for ie = 64:85 % 1:norids
     % sort out event stuff
     orid = orids(ie);
     elat = elats(ie); elon = elons(ie); edep = edeps(ie); 
@@ -95,7 +95,7 @@ for ie = 61:85 % 1:norids
         % channels' details
         for ic = 1:length(trace), comp{ic} = trace(ic).channel(end); end
         chan_dts = struct('name',{{trace.channel}},...
-                          'component',comp,...
+                          'component',{comp},...
                           'sensitivity',[trace.sensitivity],...
                           'dip',[trace.dip],...
                           'azimuth',[trace.azimuth],'rot',false);
@@ -143,8 +143,8 @@ for ie = 61:85 % 1:norids
 
         % save
         save([datadir,evdir,'/',stas{is}],'data')
-        
     end
+        return
 end
 
 
