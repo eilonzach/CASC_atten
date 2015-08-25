@@ -32,7 +32,7 @@ dbsi = dblookup_table(db,'site');
 nstas = dbnrecs(dbsi);
 dbclose(db);
 
-for ie = 1:85 % 1:norids
+for ie = 61:85 % 1:norids
     % sort out event stuff
     orid = orids(ie);
     elat = elats(ie); elon = elons(ie); edep = edeps(ie); 
@@ -79,6 +79,7 @@ for ie = 1:85 % 1:norids
         fprintf('   request station %.0f %s... ',is,stas{is})
         trace=irisFetch.Traces(nwk{is},sta,'*',chreq,waveform_start_time,waveform_end_time);
         if isempty(trace), fprintf('NO DATA\n'); continue; end
+        [ trace ] = parse_trace( trace );
         fprintf('got chans '); for ic = 1:length(trace), fprintf('%s, ',trace(ic).channel); end, fprintf('\n')
         
         % if B and H channels - only keep H (might need higher samprate?)
