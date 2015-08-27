@@ -1,6 +1,6 @@
 % quick and dirty script to make a record section for a given event
 clear all
-orid = 64;
+orid = 86;
 comp = 'Z';
 
 % antelope db details
@@ -9,6 +9,8 @@ dbnam = 'cascattendb';
 
 % path to top level of directory tree for data
 datadir = '/Volumes/DATA/CASCADIA/DATA/'; % needs final slash
+datadir = '~/Work/CASCADIA/DATA/';
+
 
 %% get to work
 db = dbopen([dbdir,dbnam],'r');
@@ -28,20 +30,28 @@ hold on
 
 for is = 1:nstas
     load([datadir,evdir,stafiles(is).name])
-    datZ = detrend(data.dat(:,end));
+    ic = find(strcmp(data.chans.component,comp),1,'first');
+    if isempty(ic), continue; end
+    datZ = detrend(data.dat(:,ic));
     datZ = datZ/abs(max(datZ));
     plot(data.tt-evtimes,datZ/8+data.gcarc)
-%   
+    for ip = 1:length(data.phases), plot(data.phases(ip).time,data.gcarc,'.g','MarkerSize',20); end
 end
 
 lms = axis;
-gcs = lms(3):0.2:lms(4);
-p = zeros(length(gcs),1); s=p;
+gcs = [lms(3):0.2:lms(4)]';
+phs = {'P','PP','Pdiff','S','SS','Sdiff','PKS','SKS','PS'};
+predar = nan(length(gcs),length(phs)); 
 for ig = 1:length(gcs)
-TT = tauptime('depth',edeps,'phases','P,S,PKS,SKS','deg',gcs(ig));
+for ip = 1:length(phs)
+TT = tauptime('depth',edeps,'phases',phs{ip},'deg',gcs(ig));
 if isempty(TT), continue; end 
-p(ig) = TT(strcmp({TT.phase},'P')).time;
-s(ig) = TT(strcmp({TT.phase},'S')).time;
+predar(ig,ip) = TT.time;
+end
 end
 
-plot(p,gcs,'-r',s,gcs,'--r')
+plot(predar,gcs*ones(size(phs)),'-r')
+ind = round(length(gcs)/2);
+for ip = 1:length(phs)
+    text(predar(ind,ip),gcs(ind),phs{ip},'FontSize',25,'color','r')
+end

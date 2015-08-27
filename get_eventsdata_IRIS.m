@@ -14,6 +14,7 @@ dbnam = 'cascattendb';
 
 % path to top level of directory tree for data
 datadir = '/Volumes/DATA/CASCADIA/DATA/'; % needs final slash
+datadir = '~/Work/CASCADIA/DATA/';
 
 javaaddpath('/Users/zeilon/Documents/MATLAB/IRIS-WS-2.0.14.jar')
 
@@ -32,7 +33,7 @@ dbsi = dblookup_table(db,'site');
 nstas = dbnrecs(dbsi);
 dbclose(db);
 
-for ie = 64:85 % 1:norids
+for ie = 85:85 % 1:norids
     % sort out event stuff
     orid = orids(ie);
     elat = elats(ie); elon = elons(ie); edep = edeps(ie); 
@@ -45,6 +46,8 @@ for ie = 64:85 % 1:norids
     % calc. data window
     waveform_start_time = epoch2str(evtime + datawind(1) - 1,'%Y-%m-%d %H:%M:%S'); % inc buffer
     waveform_end_time   = epoch2str(evtime + datawind(2) + 1,'%Y-%m-%d %H:%M:%S'); % inc buffer
+    
+    datinfo = struct('sta',[],'chans',[],'NEZ',false,'rmresp',false,'rmtilt',false,'rmcomp',false);
     
     fprintf('REQUESTING DATA FOR EVENT %.0f (%s)\n',orid,evdir)
     for is = 1:nstas
@@ -79,12 +82,12 @@ for ie = 64:85 % 1:norids
         fprintf('   request station %.0f %s... ',is,stas{is})
         trace=irisFetch.Traces(nwk{is},sta,'*',chreq,waveform_start_time,waveform_end_time);
         if isempty(trace), fprintf('NO DATA\n'); continue; end
-        [ trace ] = parse_trace( trace );
+        [ trace ] = fixtrace( trace );
         fprintf('got chans '); for ic = 1:length(trace), fprintf('%s, ',trace(ic).channel); end, fprintf('\n')
         
         % if B and H channels - only keep H (might need higher samprate?)
-        if strcmp([trace.channel],'BHEBHNBHZHHEHHNHHZ'), trace = trace(1:3); end
-        if strcmp([trace.channel],'HHEHHNHHZBHEBHNBHZ'), trace = trace(4:6); end
+        if strcmp([trace.channel],'BHEBHNBHZHHEHHNHHZ'), trace = trace(4:6); end
+        if strcmp([trace.channel],'HHEHHNHHZBHEBHNBHZ'), trace = trace(1:3); end
         
         % station details from trace
         sta_dts = struct('name',trace(1).station,...
@@ -93,12 +96,12 @@ for ie = 64:85 % 1:norids
                          'selev',trace(1).elevation);
         
         % channels' details
-        for ic = 1:length(trace), comp{ic} = trace(ic).channel(end); end
+        comp = cell(1,length(trace)); for ic = 1:length(trace), comp{ic} = trace(ic).channel(end); end
         chan_dts = struct('name',{{trace.channel}},...
                           'component',{comp},...
                           'sensitivity',[trace.sensitivity],...
                           'dip',[trace.dip],...
-                          'azimuth',[trace.azimuth],'rot',false);
+                          'azimuth',[trace.azimuth]);
                       
         [gcarc,esaz] = distance(elat,elon,sta_dts.slat,sta_dts.slon);
         [~,seaz] = distance(sta_dts.slat,sta_dts.slon,elat,elon);   
@@ -112,10 +115,12 @@ for ie = 64:85 % 1:norids
         
         % safety
         if any([trace.startTime]>epoch2serial(startTime))
-            error('Requested data only starts after desired window start')
+            fprintf('REQUESTED DATA ONLY STARTS AFTER DESIRED WINDOW START!!\n')
+            continue            
         end
         if any([trace.endTime]<epoch2serial(endTime))
-            error('Requested data ends before desired window end')
+            fprintf('REQUESTED DATA ENDS BEFORE DESIRED WINDOW END!!\n')
+            continue
         end
         
         % data
@@ -139,12 +144,17 @@ for ie = 64:85 % 1:norids
         data = struct('station',sta_dts,'network',trace(1).network,...
                        'chans',chan_dts,'samprate',samprate,'nsamps',nsamps,...
                        'gcarc',gcarc,'seaz',seaz,'esaz',esaz,...
-                       'phases',TT, 'dat',dat,'tt',tt);
+                       'phases',TT, 'dat',dat,'tt',tt,...
+                       'raw',struct('chans',chan_dts,'dat',dat),...
+                       'NEZ',false,'rmresp',false,'rmtilt',false,'rmcomp',false);
 
+        datinfo(is,1) = struct('sta',stas{is},'chans',{chan_dts.component},'NEZ',false,'rmresp',false,'rmtilt',false,'rmcomp',false);
         % save
         save([datadir,evdir,'/',stas{is}],'data')
     end
-        return
+    kill = []; for ii = 1:length(datinfo), if isempty(datinfo(ii).sta), kill = [kill;ii]; end; end
+    datinfo(kill) = [];
+    save([datadir,evdir,'/_datinfo'],'datinfo')
 end
 
 
