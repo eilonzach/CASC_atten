@@ -14,8 +14,10 @@ dbnam = 'cascattendb';
 
 % path to top level of directory tree for data
 datadir = '/Volumes/DATA/CASCADIA/DATA/'; % needs final slash
-datadir = '~/Work/CASCADIA/DATA/';
+% datadir = '~/Work/CASCADIA/DATA/';
 
+javaaddpath('/Users/zeilon/Documents/MATLAB/IRIS-WS-2.0.14.jar')
+javaaddpath('/Users/zeilon/Documents/MATLAB/IRIS-WS-2.0.14.jar')
 javaaddpath('/Users/zeilon/Documents/MATLAB/IRIS-WS-2.0.14.jar')
 
 
@@ -33,7 +35,7 @@ dbsi = dblookup_table(db,'site');
 nstas = dbnrecs(dbsi);
 dbclose(db);
 
-for ie = 85:85 % 1:norids
+for ie = 44:100 % 1:norids
     % sort out event stuff
     orid = orids(ie);
     elat = elats(ie); elon = elons(ie); edep = edeps(ie); 
@@ -105,15 +107,20 @@ for ie = 85:85 % 1:norids
                       
         [gcarc,esaz] = distance(elat,elon,sta_dts.slat,sta_dts.slon);
         [~,seaz] = distance(sta_dts.slat,sta_dts.slon,elat,elon);   
+
+        % SAMPRATE
         samprate = round(unique([trace.sampleRate])); 
-        if length(samprate)>1, error('differnt samprates\n'); end
+        if length(samprate)>1, 
+            fprintf('differnt samprates, downsamp to min'); 
+            samprate = min(unique([trace.sampleRate]));
+        end
       
-        % time
+        % TIME
         startTime = evtime + datawind(1);
         endTime   = evtime + datawind(2) - 1./samprate;
         tt = [startTime:(1./samprate):endTime]'; 
         
-        % safety
+        % SAFETY
         if any([trace.startTime]>epoch2serial(startTime))
             fprintf('REQUESTED DATA ONLY STARTS AFTER DESIRED WINDOW START!!\n')
             continue            

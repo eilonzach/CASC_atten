@@ -12,7 +12,7 @@ dbdir = '/Users/zeilon/Work/CASCADIA/CAdb/'; % needs final slash
 dbnam = 'cascattendb';
 
 % path to top level of directory tree for data
-datadir = '~/Work/CASCADIA/DATA/'; % needs final slash
+datadir = '/Volumes/DATA/CASCADIA/DATA/'; % needs final slash
 
 %% get to work
 
@@ -24,7 +24,7 @@ dbor = dblookup_table(db,'origin');
 norids = dbnrecs(dbor);
 dbclose(db);
 
-for ie = 85:86 % 1:norids % loop on orids
+for ie = 85:85 % 1:norids % loop on orids
     fprintf('\n Orid %.0f %s \n\n',orids(ie),epoch2str(evtimes(ie),'%Y-%m-%d %H:%M:%S'))
     evdir = [num2str(orids(ie),'%03d'),'_',epoch2str(evtimes(ie),'%Y%m%d%H%M'),'/'];
 %     stafiles = dir([datadir,evdir]); stafiles = stafiles(3:end);
@@ -36,8 +36,8 @@ for ie = 85:86 % 1:norids % loop on orids
         
         sta = datinfo(is).sta; % sta name
         fprintf('Station %s...',sta)
-        if strcmp(sta,'M02CO') || strcmp(sta,'M04CO'), sta = sta(1:4); end % rename problem stations
         load([datadir,evdir,sta,'.mat']); % load sta data for this evt
+        if strcmp(sta,'M02CO') || strcmp(sta,'M04CO'), sta = sta(1:4); end % rename problem stations
         
         yesE = any(strcmp(datinfo(is).chans,'E'));
         yesN = any(strcmp(datinfo(is).chans,'N'));
@@ -132,6 +132,10 @@ for ie = 85:86 % 1:norids % loop on orids
         save([datadir,evdir,sta],'data')
 
     end % loop on stas
-    for is = 1:length(datinfo), fprintf('%5s %4s %.0f\n',datinfo(is).sta,[datinfo(is).chans{:}],datinfo(is).NEZ); end
     save([datadir,evdir,'_datinfo'],'datinfo')
+    
+	%% sum up
+    fprintf(' STA  CHAN  NEZ  resp  tilt  comp\n')
+    for is = 1:length(datinfo), fprintf('%-5s %4s   %1.0f     %1.0f     %1.0f     %1.0f\n',datinfo(is).sta,[datinfo(is).chans{:}],datinfo(is).NEZ,datinfo(is).rmresp,datinfo(is).rmtilt,datinfo(is).rmcomp); end
+
 end
