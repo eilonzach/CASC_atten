@@ -36,6 +36,10 @@ for ie = 85:85 % 1:norids % loop on orids
         data.rmtilt = false;
         data.rmcomp = false;
         
+        [data.phases.xtime]   = deal([]);
+        [data.phases.xartime] = deal([]);
+        [data.phases.xacor]   = deal([]);
+        
         datinfo(is).chans  = data.raw.chans.component;
         datinfo(is).NEZ    = false;
         datinfo(is).rmresp = false;
