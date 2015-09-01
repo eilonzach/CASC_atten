@@ -56,46 +56,46 @@ plot(data(irst).slon, data(irst).slat,'ok','MarkerSize',10,'LineWidth',2.5)
 
 figure(1), clf
 for is = 1:nstas
-dat = data(is).datfilt;
-dn = dat(jn);
-ds = dat(js);
-data(is).snr = var(ds)/var(dn);    % signal-to-noise, useful for filtering fits
-% detrend
-dn = detrend(dn);
-ds = detrend(ds);
-% window
-dn=dn.*wdo;
-ds=ds.*wdo;
-% pad
-% dn = [zeros(1,10),dn,zeros(1,10)];
-% ds = [zeros(1,10),ds,zeros(1,10)];
+    dat = data(is).datfilt;
+    dn = dat(jn);
+    ds = dat(js);
+    data(is).snr = var(ds)/var(dn);    % signal-to-noise, useful for filtering fits
+    % detrend
+    dn = detrend(dn);
+    ds = detrend(ds);
+    % window
+    dn=dn.*wdo;
+    ds=ds.*wdo;
+    % pad
+    % dn = [zeros(1,10),dn,zeros(1,10)];
+    % ds = [zeros(1,10),ds,zeros(1,10)];
 
-ntap=2;
-nft=2^nextpow2(nw);
-[specn,~]=pmtm(dn,ntap,nft,1./dt);
-[specs,frq]=pmtm(ds,ntap,nft,1./dt);
-frq=frq(2:length(frq));
-specn=specn(2:length(specn));
-specs=specs(2:length(specs));
+    ntap=2;
+    nft=2^nextpow2(nw);
+    [specn,~]=pmtm(dn,ntap,nft,1./dt);
+    [specs,frq]=pmtm(ds,ntap,nft,1./dt);
+    frq=frq(2:length(frq));
+    specn=specn(2:length(specn));
+    specs=specs(2:length(specs));
 
-%convert power to amplitude, and integrate to displacement
-data(is).specn=(specn.^0.5)./(2.*pi.*frq);
-data(is).specs=(specs.^0.5)./(2.*pi.*frq);
+    %convert power to amplitude, and integrate to displacement
+    data(is).specn=(specn.^0.5)./(2.*pi.*frq);
+    data(is).specs=(specs.^0.5)./(2.*pi.*frq);
 
-data(is).specss = moving_average(data(is).specs,mavwind);
+    data(is).specss = moving_average(data(is).specs,mavwind);
 
-data(is).fmax = frq(max([find(data(is).specs<data(is).specn,1,'first'),2])-1);
-if isempty(data(is).fmax), data(is).fmax = 0; end
+    data(is).fmax = frq(max([find(data(is).specs<data(is).specn,1,'first'),2])-1);
+    if isempty(data(is).fmax), data(is).fmax = 0; end
 
-if data(is).snr < snrmin, continue, end
-%% plot data series
-subplot(212), hold on
-ja=max(js) + (1:nw);
-da = detrend(data(is).dat(ja)).*wdo;
-hold on;
-plot(tt(jn),dn,'r',tt(js),ds,'g',tt(ja),da,'k');
-xlabel('time from pick, s')
-xlim([min(tt(jn)) max(tt(ja))])
+    if data(is).snr < snrmin, continue, end
+    %% plot data series
+    subplot(212), hold on
+    ja=max(js) + (1:nw);
+    da = detrend(data(is).dat(ja)).*wdo;
+    hold on;
+    plot(tt(jn),dn,'r',tt(js),ds,'g',tt(ja),da,'k');
+    xlabel('time from pick, s')
+    xlim([min(tt(jn)) max(tt(ja))])
 
 end
 
@@ -123,7 +123,7 @@ set(hp,'color',colour_get(data(is).slon,max([data.slon]),min([data.slon])))
 xlim([0 hifrq])
 fo = fit(frq(ind),data(is).lnR(ind),'poly1');
 data(is).dtstar = fo.p1/(-pi);
-data(is).dtstar_cb = confint(fo); data(is).dtstar_cb = data(is).dtstar_cb(1,:)';
+data(is).dtstar_cb = confint(fo); data(is).dtstar_cb = data(is).dtstar_cb(1,:)'; % shouldn't this have a /(pi);?
 end
 
 figure(3), clf, hold on

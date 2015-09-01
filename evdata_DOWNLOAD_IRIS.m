@@ -19,6 +19,7 @@ datadir = '/Volumes/DATA/CASCADIA/DATA/'; % needs final slash
 javaaddpath('/Users/zeilon/Documents/MATLAB/IRIS-WS-2.0.14.jar')
 javaaddpath('/Users/zeilon/Documents/MATLAB/IRIS-WS-2.0.14.jar')
 javaaddpath('/Users/zeilon/Documents/MATLAB/IRIS-WS-2.0.14.jar')
+addpath('matguts')
 
 
 %% get event details
@@ -35,7 +36,7 @@ dbsi = dblookup_table(db,'site');
 nstas = dbnrecs(dbsi);
 dbclose(db);
 
-for ie = 44:100 % 1:norids
+for ie = 124:norids % 1:norids
     % sort out event stuff
     orid = orids(ie);
     elat = elats(ie); elon = elons(ie); edep = edeps(ie); 
@@ -53,6 +54,7 @@ for ie = 44:100 % 1:norids
     
     fprintf('REQUESTING DATA FOR EVENT %.0f (%s)\n',orid,evdir)
     for is = 1:nstas
+        javaaddpath('/Users/zeilon/Documents/MATLAB/IRIS-WS-2.0.14.jar')
         sta = stas{is};
         if overwrite==false && exist([datadir,evdir,'/',stas{is},'.mat'],'file')==2, continue; end
         
@@ -85,7 +87,7 @@ for ie = 44:100 % 1:norids
         trace=irisFetch.Traces(nwk{is},sta,'*',chreq,waveform_start_time,waveform_end_time);
         if isempty(trace), fprintf('NO DATA\n'); continue; end
         [ trace ] = fixtrace( trace );
-        fprintf('got chans '); for ic = 1:length(trace), fprintf('%s, ',trace(ic).channel); end, fprintf('\n')
+        fprintf('got chans '); for ic = 1:length(trace), fprintf('%s, ',trace(ic).channel); end
         
         % if B and H channels - only keep H (might need higher samprate?)
         if strcmp([trace.channel],'BHEBHNBHZHHEHHNHHZ'), trace = trace(4:6); end
@@ -111,7 +113,7 @@ for ie = 44:100 % 1:norids
         % SAMPRATE
         samprate = round(unique([trace.sampleRate])); 
         if length(samprate)>1, 
-            fprintf('differnt samprates, downsamp to min'); 
+            fprintf(' differnt samprates, downsamp to min'); 
             samprate = min(unique([trace.sampleRate]));
         end
       
@@ -158,6 +160,7 @@ for ie = 44:100 % 1:norids
         datinfo(is,1) = struct('sta',stas{is},'chans',{chan_dts.component},'NEZ',false,'rmresp',false,'rmtilt',false,'rmcomp',false);
         % save
         save([datadir,evdir,'/',stas{is}],'data')
+        fprintf('\n')
     end
     kill = []; for ii = 1:length(datinfo), if isempty(datinfo(ii).sta), kill = [kill;ii]; end; end
     datinfo(kill) = [];

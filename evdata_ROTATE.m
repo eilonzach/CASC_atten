@@ -24,7 +24,7 @@ dbor = dblookup_table(db,'origin');
 norids = dbnrecs(dbor);
 dbclose(db);
 
-for ie = 85:85 % 1:norids % loop on orids
+for ie = 86:86 % 1:norids % loop on orids
     fprintf('\n Orid %.0f %s \n\n',orids(ie),epoch2str(evtimes(ie),'%Y-%m-%d %H:%M:%S'))
     evdir = [num2str(orids(ie),'%03d'),'_',epoch2str(evtimes(ie),'%Y%m%d%H%M'),'/'];
 %     stafiles = dir([datadir,evdir]); stafiles = stafiles(3:end);
@@ -51,18 +51,27 @@ for ie = 85:85 % 1:norids % loop on orids
         
         % CASE: ALREADY NEZ
         if (yesE && yesN)
-            fprintf(' no need to rotate, making sure NEZ order.\n')
+            fprintf('maybe minor rotation + making sure NEZ order.\n')
             chans = data.chans;
             ich = find(strcmp(chans.component,'H'));
             ice = find(strcmp(chans.component,'E'));
             icn = find(strcmp(chans.component,'N'));
             icz = find(strcmp(chans.component,'Z'));
             
-            newdat = data.dat(:,[ich,icn,ice,icz]);
+            newdat = zeros(size(data.dat));
+            sor = sind(chans.azimuth(icn));
+            cor = cosd(chans.azimuth(icn));
+
+            newdat(:,icn) = cor*data.dat(:,icn) - sor*data.dat(:,ice);    % NORTH
+            newdat(:,ice) = sor*data.dat(:,icn) + cor*data.dat(:,ice);    % EAST
+            newdat(:,ich) = data.dat(:,ich);
+            newdat(:,icz) = data.dat(:,icz);
+            
             chans.name = chans.name([ich,icn,ice,icz]);
             chans.component = chans.component([ich,icn,ice,icz]);
-            chans.azimuth = chans.azimuth([ich,icn,ice,icz]);
-             % put back into data structure
+            chans.azimuth = [chans.azimuth(ich), 0 90 chans.azimuth(icz)];
+            
+            % put back into data structure
             data.dat   = newdat;
             data.chans = chans;
             data.NEZ = true;
@@ -116,7 +125,7 @@ for ie = 85:85 % 1:norids % loop on orids
             % alter chans
             chans.name([ic1,ic2]) = {[chans.name{ic1}(1:2),'N'],[chans.name{ic2}(1:2),'E']};
             chans.component([ic1,ic2]) = {'N','E'};
-            chans.azimuth([ic1,ic2]) = orientation +[0 90];
+            chans.azimuth([ic1,ic2]) = [0 90];
     
             % put back into data structure
             data.dat   = newdat;
