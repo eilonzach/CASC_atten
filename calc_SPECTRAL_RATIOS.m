@@ -57,13 +57,15 @@ for ie = 85:85 % 44:norids % loop on orids
     %% ------------------ GRAB DATA IN RIGHT FORMAT ------------------
     % prep data structures
     all_dat0  = zeros(resamprate*diff(datwind),nstas);
-    
+
     % LOOP ON STAS
     for is = 1:nstas
         fprintf('Station %s... ',datinfo(is).sta)        % APPLY DATA QUALITY CONDITIONS
         if isempty(eqar(is).(['dat' component])),fprintf('no data for this component\n'),continue; end   
         if isempty(eqar(is).dT),fprintf('no xcor for this component\n'),continue; end
         
+        % SHIFT TRACES USING XCOR ARRIVAL TIME 
+        % shift so arrival is at time=0
         att = eqar(is).tt-eqar(is).abs_arrT; % shift to since absolute arrival
         ja = (att >= datwind(1)) & (att < datwind(2)); % excerpt times according to datwind
         
@@ -75,6 +77,7 @@ for ie = 85:85 % 44:norids % loop on orids
         end
         fprintf('got data\n')
     end % loop on stas
+    
     % CLEAN DATA for signal and noise
     cp = struct('samprate',resamprate,'pretime',-datwind(1),'prex',-specwind(1),'postx',specwind(2),...
             'taperx',taperx,'fhi',filtfs(2),'flo',filtfs(1),'npoles',2,'norm',0);
@@ -85,24 +88,29 @@ for ie = 85:85 % 44:norids % loop on orids
     [ all_datwf,all_datf,all_datwc,all_datc,~,ttws,tts ] = data_clean( all_dat0,cp );
     [ all_datwf_n,all_datf_n,all_datwc_n,all_datc_n,~,ttws_n,tts_n ] = data_clean( all_dat0,cp_n );
     
+    % CALCULATE SNR 
+    % from ratio of variance of noise to signal
+    snrwf = var(all_datwf)./var(all_datwf_n);
+    eqar(1).snr_wf = [];
+    eqar = dealto(eqar,'snr_wf',snrwf);
     
-    % MARK ZERO DATA TRACES
+    % ONLY USE GOOD TRACES
     indgd = 1:size(eqar);
     indgd(mean(abs(all_datwf(:,indgd)))==0)     = []; % kill zero traces
     indgd(isnan(mean(abs(all_datwf(:,indgd))))) = []; % kill nan traces
+    indgd(snrwf(indgd)<snrmin)                         = []; % kill low snr traces
     if length(indgd) < 2, fprintf('NO GOOD TRACES/ARRIVALS, skip...\n'), continue, end
     
-	wlen = diff(specwind)*resamprate*(1+4*taperx); % window length, accounting for taper+padding
     
-	snr = var(all_datwf)./var(all_datwf_n);
-    
+    %% ------------------ CALCULATE SPECTRA ------------------
     % WORK OUT SOME KEY VALS
+ 	wlen = diff(specwind)*resamprate*(1+4*taperx); % window length, accounting for taper+padding
     dt = 1./resamprate;
     ntap=2;
     nft=2^nextpow2(wlen);
-    nyq=0.5./dt;
+    nyq=0.5*resamprate;
 
-    hw = waitbar(0,'PROGRESS THROUGH SPECTRA CALC.');
+    hw = waitbar(0,'PROGRESS THROUGH CALCULATION OF SPECTRA');
     for ig = 1:length(indgd)
         is = indgd(ig);
         
@@ -119,31 +127,89 @@ for ie = 85:85 % 44:norids % loop on orids
 
         eqar(is).specss = moving_average(eqar(is).specs,mavwind);
 
-        eqar(is).fmax = frq(max([find(eqar(is).specs<eqar(is).specn,1,'first'),2])-1);
-        if isempty(eqar(is).fmax), eqar(is).fmax = 0; end
+        eqar(is).fcross = frq(max([find(eqar(is).specs<eqar(is).specn,1,'first'),2])-1);
+        if isempty(eqar(is).fcross), eqar(is).fcross = 0; end
         waitbar(ig/length(indgd),hw)
     end
     delete(hw)
+
+    % ONLY USE GOOD TRACES
+    indgd([eqar(indgd).fcross]<hifrq)  	= []; % kill low f-noise crossing traces
+    if length(indgd) < 2, fprintf('NO GOOD TRACES/ARRIVALS, skip...\n'), continue, end
     
-    return
+% 	%% ------------------ CALCULATE DT-STAR FROM REFSTA ------------------
+%     refsta = 'WISH';
+%     iref = find(strcmp({eqar.sta},refsta));
+%     refspecss = eqar(iref).specss;
+%     
+%     lnR_all = zeros(length(eqar(is).specss),length(indgd));
+% 	ind = frq<hifrq;
+%     figure(78), clf, set(gcf,'position',[440 0 1000 1400]), hold on
+%     for ig = 1:length(indgd)
+%         is = indgd(ig);
+%         ispecss = eqar(is).specss;
+%         lnR = log(ispecss./refspecss);
+%         fo = fit(frq(ind),lnR(ind),'poly1');
+%         
+%         subplot(2,1,1), hold on
+%         hr = plot(frq,lnR,'Linewidth',1.5);
+%         hrf = plot(fo);
+%         xlim([0 hifrq])
+%         
+%         subplot(2,1,2), hold on
+%         hs = plot(ttws,all_datwf(:,is)./max(max(abs(all_datwf(:,indgd))))+eqar(is).gcarc,'Linewidth',1.5);
+%         
+%         set(hs,'color',colour_get(eqar(is).slon,max([eqar.slon]),min([eqar.slon])))
+%         set(hr,'color',colour_get(eqar(is).slon,max([eqar.slon]),min([eqar.slon])))
+%         set(hrf,'color',colour_get(eqar(is).slon,max([eqar.slon]),min([eqar.slon])))
+%         
+%         lnR_all(:,ig) = lnR;
+%     end
+    
+    %% ------------------ CALCULATE DIFFERENTIAL T-STAR ------------------
+    specss = zeros(length(eqar(is).specss),length(indgd));
+    for ig = 1:length(indgd)
+        is = indgd(ig);
+        specss(:,ig) = eqar(is).specss;
+    end
+    
+    % CALC DELTA-TSTAR.
+    fprintf('Calculate least-squares differential t-star\n')
+    [ delta_tstar,cov_dtstar,std_dtstar ] = xspecratio( specss,frq,hifrq,1,0 );
+    
+    
+    %% ---------------------- STORE RESULTS -----------------------
+    % STORE RESULTS
+    fprintf('Recording results in arrival structure...')
+    % prep eqar to receive new fields
+    eqar(1).dtstar = []; eqar(1).std_dtstar = []; eqar(1).par_dtstar = [];
+    par_dtstar = struct('comp',component,'filtfs',filtfs,'window',specwind,...
+                          'taperx',taperx,'mavwind',mavwind,'hifrq',hifrq,'snrmin',snrmin);
+                      
+    eqar(indgd) =  dealto(eqar(indgd),'dtstar',delta_tstar);
+    eqar(indgd) =  dealto(eqar(indgd),'std_dtstar',std_dtstar);
+    eqar(indgd) =  dealto(eqar(indgd),'par_dtstar',par_dtstar);
+    
+    
+    %% -------------------------- PLOTS ---------------------------
     %% look at maximum frequencies above noise
     figure(87), clf, hold on
-    fmaxs = [eqar.fmax]';
-    hist(fmaxs,100); xlim([0 2])
-    line(hifrq*[1 1],[0 max(hist(fmaxs))],'Color','r','LineStyle','--','LineWidth',2)
+    fcross = [eqar(indgd).fcross]';
+    hist(fcross,100); xlim([0 2])
+    line(hifrq*[1 1],[0 max(hist(fcross))],'Color','r','LineStyle','--','LineWidth',2)
     title('maximum freq where signal is above noise')
 
     %% spectral plot
-    figure(1), clf
+    figure(1), clf, set(gcf,'position',[440 0 1000 1400]), hold on
     for ig = 1:length(indgd)
         is = indgd(ig);
-	
+
         % plot data series
         subplot(212), hold on
         hpd = plot(ttws_n,all_datwf_n(:,is),'r',ttws,all_datwf(:,is),'g');
         set(hpd,'color',colour_get(eqar(is).slon,max([eqar.slon]),min([eqar.slon])))
         xlabel('time from pick, s')
-        
+
         % plot spectrum
         subplot(211), hold on
         n4=length(find(frq<=0.8*nyq));
@@ -160,26 +226,18 @@ for ie = 85:85 % 44:norids % loop on orids
         ylim([-9,-2]);
     end
 
+    plot_ATTEN_TandF_domain( eqar,evtimes(ie) )
     
     
-    %     % STORE RESULTS
-%     fprintf('Recording results in arrival structure...')
-%     for is = 1:length(indgd)
-%         eqar(indgd(is)).dT       = dcor(is);
-%         eqar(indgd(is)).acor     = acor(is);
-%         eqar(indgd(is)).abs_arrT = eqar(is).pred_arrT + dcor(is) + t0(1);
-%         eqar(indgd(is)).dT_filt_parms = cp;
-%     end
-%     pause(.1)
-%     
-%       
-%     % SAVE
-%     save(arfile,'eqar')
-%     fprintf(' saved\n')
-%     % RECORD XCOR IN DATINFO 
-% 	[datinfo(indgd).xcor] = deal(true);
-%     save([datadir,evdir,'_datinfo'],'datinfo')
-%     
+     %% -------------------------- SAVE ---------------------------
+      
+    % SAVE
+    save(arfile,'eqar')
+    fprintf(' saved\n')
+    % RECORD DTSTARCALC IN DATINFO 
+	[datinfo(indgd).dtstar] = deal(true);
+    save([datadir,evdir,'_datinfo'],'datinfo')
+    
     toc  
     return
 end

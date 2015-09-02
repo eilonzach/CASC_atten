@@ -36,7 +36,7 @@ dbsi = dblookup_table(db,'site');
 nstas = dbnrecs(dbsi);
 dbclose(db);
 
-for ie = 124:norids % 1:norids
+for ie = 315:norids % 1:norids
     % sort out event stuff
     orid = orids(ie);
     elat = elats(ie); elon = elons(ie); edep = edeps(ie); 

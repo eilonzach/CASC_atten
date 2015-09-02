@@ -141,15 +141,17 @@ for ie = 85:85 % 44:norids % loop on orids
         end
     end
     
+%% ---------------------- STORE RESULTS -----------------------
     % STORE RESULTS
     fprintf('Recording results in arrival structure...')
-    for ig = 1:length(indgd) 
-        is = indgd(ig);
-        eqar(is).dT       = dcor(ig);
-        eqar(is).acor     = acor(ig);
-        eqar(is).abs_arrT = eqar(is).pred_arrT + dcor(ig) + t0(1);
-        eqar(is).dT_filt_parms = cp;
-    end
+    % prep eqar to receive new fields
+    eqar(1).dT = []; eqar(1).acor = []; eqar(1).abs_arrT = []; eqar(1).par_dT = [];
+
+    eqar(indgd) =  dealto(eqar(indgd),'dT',dcor);
+    eqar(indgd) =  dealto(eqar(indgd),'acor',acor);
+    eqar(indgd) =  dealto(eqar(indgd),'abs_arrT',[eqar(indgd).pred_arrT]' + dcor + t0(1));
+    eqar(indgd) =  dealto(eqar(indgd),'par_dT',cp);
+
     pause(.1)
 
     

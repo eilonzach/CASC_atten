@@ -6,7 +6,7 @@ addpath('/Users/zeilon/Documents/MATLAB/lib/haxby_colourmap')
 if ~exist('latlim','var'), latlim=[39 52];      end
 if ~exist('lonlim','var'), lonlim=[-133 -120];  end
 
-cd('/Users/zeilon/Documents/MATLAB/CascAtten/mapdata');
+cd('/Users/zeilon/Documents/MATLAB/CASC_atten/mapdata');
 
 coast = load('m_casccoast.mat'); % load coastline
 [grdX,grdY,grdZ] = grdread2('cascmrg2.grd'); % load topo grid
