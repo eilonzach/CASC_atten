@@ -1,26 +1,32 @@
 % cycle through events and calculate spectral ratios for all stations
 clear all
 close all
+cd /Users/zeilon/Documents/MATLAB/CASC_atten
 addpath('matguts')
 
 %% parameters
 phase = 'P';
-resamprate = 40 ; % new, common sample rate
 component = 'Z'; %'Z', 'R', or 'T'
+resamprate = 40 ; % new, common sample rate
 filtfs = 1./[40 .1]; % [flo fhi] = 1./[Tmax Tmin] in sec
 taperx = 0.2;
-datwind = [-180 175]; % window of data in eqar structure
-specwind = [-10 30];
-snrmin = 3;
+datwind = [-160 165]; % window of data in eqar structure
+specwind = [-5 30];
+snrmin = 5;
 mavwind = 1; % length of moving average to smooth spectrum (1 for no smoothing)
-hifrq = 0.4; % uppermost freq to fit (Hz)
+lofrq = 0.05; % uppermost freq to fit (Hz)
+hifrq = 0.25; % uppermost freq to fit (Hz)
+
+overwrite = true;
+ifplot    = true;
+ifsave    = true;
 
 %% directories 
 % ANTELOPE DB DETAILS
 dbdir = '/Users/zeilon/Work/CASCADIA/CAdb/'; % needs final slash
 dbnam = 'cascattendb';
 % DATA DIRECTORY (top level)
-datadir = '~/Work/CASCADIA/DATA/'; % needs final slash
+datadir = '/Volumes/DATA/CASCADIA/DATA/'; % needs final slash
 
 %% =================================================================== %%
 %% ==========================  GET TO WORK  ========================== %%
@@ -34,13 +40,14 @@ norids = dbnrecs(dbor);
 dbclose(db);
 
 
-for ie = 85:85 % 44:norids % loop on orids
+for ie = 383:387 % 44:norids % loop on orids
+%     if  mags(ie)<6.9, continue, end
     tic
     fprintf('\n Orid %.0f %s \n\n',orids(ie),epoch2str(evtimes(ie),'%Y-%m-%d %H:%M:%S'))
     % name files and directories
-    evdir    = [num2str(orids(ie),'%03d'),'_',epoch2str(evtimes(ie),'%Y%m%d%H%M'),'/'];
-    datinfofile = [datadir,evdir,'_datinfo'];
-    arfile   = [datadir,evdir,'_EQAR_',phase];
+    evdir       = [num2str(orids(ie),'%03d'),'_',epoch2str(evtimes(ie),'%Y%m%d%H%M'),'/'];
+    datinfofile = [datadir,evdir,'_datinfo_',phase];
+    arfile      = [datadir,evdir,'_EQAR_',phase,'_',component];
    
     % check files exist
     if ~exist([datinfofile,'.mat'],'file'), fprintf('No station mat files for this event\n');continue, end
@@ -50,12 +57,26 @@ for ie = 85:85 % 44:norids % loop on orids
     load(datinfofile) % loads datinfo stucture
     load(arfile)      % loads eqar structure
     
-    if isempty(datinfo), fprintf('No station mat files for this event\n');continue, end
-    if ~any([datinfo.xcor]), fprintf('Need to xcor arrival time for this phase and event\n');continue, end
-    nstas = length(datinfo);
+    % options to skip
+    if isempty(datinfo), fprintf('No station mat files for this event\n'); continue, end
+    if ~isfield(datinfo,'xcor') 
+        fprintf('Need to xcor arrival time for this phase and event\n'), continue
+    end
+	if ~any([datinfo.xcor]==true)
+        fprintf('Need to xcor arrival time for this phase and event\n'), continue
+	end
+    if isfield(datinfo,'dtstar')
+        if any([datinfo.dtstar]==true)
+            if ~overwrite
+                yn = input('delta-tstar already done - overwrite? [y/n] ','s'); 
+                if ~strcmp(yn,'y'), fprintf('skipping...\n'), continue, end
+            end
+        end
+    end
     
     %% ------------------ GRAB DATA IN RIGHT FORMAT ------------------
     % prep data structures
+    nstas = length(datinfo);
     all_dat0  = zeros(resamprate*diff(datwind),nstas);
 
     % LOOP ON STAS
@@ -63,7 +84,9 @@ for ie = 85:85 % 44:norids % loop on orids
         fprintf('Station %s... ',datinfo(is).sta)        % APPLY DATA QUALITY CONDITIONS
         if isempty(eqar(is).(['dat' component])),fprintf('no data for this component\n'),continue; end   
         if isempty(eqar(is).dT),fprintf('no xcor for this component\n'),continue; end
-        
+        if isnan(eqar(is).dT),fprintf('no xcor for this component\n'),continue; end
+        if strcmp(eqar(is).sta,'M08C'), eqar(is).slon = -124.895400; end
+
         % SHIFT TRACES USING XCOR ARRIVAL TIME 
         % shift so arrival is at time=0
         att = eqar(is).tt-eqar(is).abs_arrT; % shift to since absolute arrival
@@ -93,12 +116,12 @@ for ie = 85:85 % 44:norids % loop on orids
     snrwf = var(all_datwf)./var(all_datwf_n);
     eqar(1).snr_wf = [];
     eqar = dealto(eqar,'snr_wf',snrwf);
-    
+
     % ONLY USE GOOD TRACES
     indgd = 1:size(eqar);
     indgd(mean(abs(all_datwf(:,indgd)))==0)     = []; % kill zero traces
     indgd(isnan(mean(abs(all_datwf(:,indgd))))) = []; % kill nan traces
-    indgd(snrwf(indgd)<snrmin)                         = []; % kill low snr traces
+    indgd(snrwf(indgd)<snrmin)                  = []; % kill low snr traces
     if length(indgd) < 2, fprintf('NO GOOD TRACES/ARRIVALS, skip...\n'), continue, end
     
     
@@ -121,10 +144,12 @@ for ie = 85:85 % 44:norids % loop on orids
         specs=specs(2:length(specs));
 
         eqar(is).frq = frq;
-        %convert power to amplitude, and integrate to displacement
-        eqar(is).specn=(specn.^0.5)./(2.*pi.*frq);
-        eqar(is).specs=(specs.^0.5)./(2.*pi.*frq);
-
+% %         %convert power to amplitude, and integrate to displacement
+% %         eqar(is).specn=(specn.^0.5)./(2.*pi.*frq);
+% %         eqar(is).specs=(specs.^0.5)./(2.*pi.*frq);
+        %convert power to amplitude ALREADY IN DISPLACEMENT
+        eqar(is).specn=(specn.^0.5);
+        eqar(is).specs=(specs.^0.5);
         eqar(is).specss = moving_average(eqar(is).specs,mavwind);
 
         eqar(is).fcross = frq(max([find(eqar(is).specs<eqar(is).specn,1,'first'),2])-1);
@@ -132,12 +157,11 @@ for ie = 85:85 % 44:norids % loop on orids
         waitbar(ig/length(indgd),hw)
     end
     delete(hw)
-
-    % ONLY USE GOOD TRACES
-    indgd([eqar(indgd).fcross]<hifrq)  	= []; % kill low f-noise crossing traces
-    if length(indgd) < 2, fprintf('NO GOOD TRACES/ARRIVALS, skip...\n'), continue, end
+%     % ONLY USE GOOD TRACES
+%     indgd([eqar(indgd).fcross]<hifrq)  	= []; % kill low f-noise crossing traces
+    if length(indgd) < 3, fprintf('NOT ENOUGH GOOD TRACES/ARRIVALS, skip...\n'), continue, end
     
-% 	%% ------------------ CALCULATE DT-STAR FROM REFSTA ------------------
+ 	%% ------------------ CALCULATE DT-STAR FROM REFSTA ------------------
 %     refsta = 'WISH';
 %     iref = find(strcmp({eqar.sta},refsta));
 %     refspecss = eqar(iref).specss;
@@ -175,7 +199,7 @@ for ie = 85:85 % 44:norids % loop on orids
     
     % CALC DELTA-TSTAR.
     fprintf('Calculate least-squares differential t-star\n')
-    [ delta_tstar,cov_dtstar,std_dtstar ] = xspecratio( specss,frq,hifrq,1,0 );
+    [ delta_tstar,cov_dtstar,std_dtstar ] = xspecratio( specss,frq,hifrq,lofrq,1,ifplot );
     
     
     %% ---------------------- STORE RESULTS -----------------------
@@ -184,14 +208,18 @@ for ie = 85:85 % 44:norids % loop on orids
     % prep eqar to receive new fields
     eqar(1).dtstar = []; eqar(1).std_dtstar = []; eqar(1).par_dtstar = [];
     par_dtstar = struct('comp',component,'filtfs',filtfs,'window',specwind,...
-                          'taperx',taperx,'mavwind',mavwind,'hifrq',hifrq,'snrmin',snrmin);
+                          'taperx',taperx,'mavwind',mavwind,'hifrq',hifrq,'lofrq',lofrq,'snrmin',snrmin);
                       
     eqar(indgd) =  dealto(eqar(indgd),'dtstar',delta_tstar);
     eqar(indgd) =  dealto(eqar(indgd),'std_dtstar',std_dtstar);
     eqar(indgd) =  dealto(eqar(indgd),'par_dtstar',par_dtstar);
-    
+
+	indbd = setdiff(1:length(eqar),indgd);
+    eqar(indbd) =  dealto(eqar(indbd),'dtstar',nan);
+
     
     %% -------------------------- PLOTS ---------------------------
+    if ifplot
     %% look at maximum frequencies above noise
     figure(87), clf, hold on
     fcross = [eqar(indgd).fcross]';
@@ -213,8 +241,8 @@ for ie = 85:85 % 44:norids % loop on orids
         % plot spectrum
         subplot(211), hold on
         n4=length(find(frq<=0.8*nyq));
-        hps = plot(frq(1:n4),log10(eqar(is).specss(1:n4)),'b','LineWidth',1.5); % << here using smoothed spectrum 
-        hpn = plot(frq(1:n4),log10(eqar(is).specn(1:n4)),'k','LineWidth',1.5);
+        hps = semilogx(frq(1:n4),log10(eqar(is).specss(1:n4)),'b','LineWidth',1.5); % << here using smoothed spectrum 
+        hpn = semilogx(frq(1:n4),log10(eqar(is).specn(1:n4)),'k','LineWidth',1.5);
         set(hps,'color',colour_get(eqar(is).slon,max([eqar.slon]),min([eqar.slon])))
         % xlim(ax(1),[0 0.8*nyq]);
         xlabel('Hz'); 
@@ -224,20 +252,27 @@ for ie = 85:85 % 44:norids % loop on orids
         % % ylim(ax(1),ylim_max.*[1.e-4 1])
         xlim([0 hifrq]);
         ylim([-9,-2]);
-    end
+    end % loop on good stas
 
-    plot_ATTEN_TandF_domain( eqar,evtimes(ie) )
+    plot_ATTEN_TandF_domain( eqar )
+    end % ifplot
     
-    
-     %% -------------------------- SAVE ---------------------------
-      
+	%% -------------------------- SAVE ---------------------------
+    if ifsave
     % SAVE
     save(arfile,'eqar')
     fprintf(' saved\n')
     % RECORD DTSTARCALC IN DATINFO 
+    [datinfo.dtstar] = deal(false);
 	[datinfo(indgd).dtstar] = deal(true);
-    save([datadir,evdir,'_datinfo'],'datinfo')
+    save(datinfofile,'datinfo')
+    
+    fprintf(' STA  CHAN  NEZ  resp  tilt  comp  xcor  tstar\n')
+	for is = 1:length(datinfo), fprintf('%-5s %4s   %1.0f     %1.0f     %1.0f     %1.0f     %1.0f     %1.0f\n',datinfo(is).sta,[datinfo(is).chans{:}],datinfo(is).NEZ,datinfo(is).rmresp,datinfo(is).rmtilt,datinfo(is).rmcomp,datinfo(is).xcor,datinfo(is).dtstar); end
+    end
+
     
     toc  
-    return
-end
+end % loop on orids
+
+% results_PARSE

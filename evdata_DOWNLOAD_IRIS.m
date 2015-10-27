@@ -3,14 +3,21 @@
 % then using the IRISrequest tools to get and store the data in a directory
 % tree where each event has a folder containing .mat files that are the
 % data for each staition.
+clear all
+cd ~/Documents/MATLAB/CASC_atten
 
-datawind = [-200 1800]; % time window in seconds after event to [start end]
+datawind = [-100 1700]; % time window in seconds after event to [start end]
+
 phases = 'P,S,PKS,SKS';
+
 overwrite = true;
 
+getnoise = true;
+OBSnoiseprewind = [-43200 0]; % time window in seconds after event to [start end] <== 12 hours in advance
+
 % antelope db details
-dbdir = '/Users/zeilon/Work/CASCADIA/CAdb/'; % needs final slash
-dbnam = 'cascattendb';
+dbdir = '/Users/zeilon/Work/CASCADIA/CAdb2/'; % needs final slash
+dbnam = 'cascBIGdb';
 
 % path to top level of directory tree for data
 datadir = '/Volumes/DATA/CASCADIA/DATA/'; % needs final slash
@@ -18,7 +25,7 @@ datadir = '/Volumes/DATA/CASCADIA/DATA/'; % needs final slash
 
 javaaddpath('/Users/zeilon/Documents/MATLAB/IRIS-WS-2.0.14.jar')
 javaaddpath('/Users/zeilon/Documents/MATLAB/IRIS-WS-2.0.14.jar')
-javaaddpath('/Users/zeilon/Documents/MATLAB/IRIS-WS-2.0.14.jar')
+javaaddpath('./IRIS-WS-2.0.14.jar')
 addpath('matguts')
 
 
@@ -32,11 +39,11 @@ dbclose(db);
 %% get station details
 db = dbopen([dbdir,dbnam],'r');
 dbsi = dblookup_table(db,'site');
-[stas,slats,slons,selevs,nwk] = dbgetv(dbsi,'sta','lat','lon','elev','refsta');
+[stas,slats,slons,selevs,nwk,statype] = dbgetv(dbsi,'sta','lat','lon','elev','refsta','statype');
 nstas = dbnrecs(dbsi);
 dbclose(db);
 
-for ie = 315:norids % 1:norids
+for ie = 10:100 % 1:norids
     % sort out event stuff
     orid = orids(ie);
     elat = elats(ie); elon = elons(ie); edep = edeps(ie); 
@@ -49,12 +56,12 @@ for ie = 315:norids % 1:norids
     % calc. data window
     waveform_start_time = epoch2str(evtime + datawind(1) - 1,'%Y-%m-%d %H:%M:%S'); % inc buffer
     waveform_end_time   = epoch2str(evtime + datawind(2) + 1,'%Y-%m-%d %H:%M:%S'); % inc buffer
-    
+
     datinfo = struct('sta',[],'chans',[],'NEZ',false,'rmresp',false,'rmtilt',false,'rmcomp',false);
     
     fprintf('REQUESTING DATA FOR EVENT %.0f (%s)\n',orid,evdir)
     for is = 1:nstas
-        javaaddpath('/Users/zeilon/Documents/MATLAB/IRIS-WS-2.0.14.jar')
+%         javaaddpath('/Users/zeilon/Documents/MATLAB/IRIS-WS-2.0.14.jar')
         sta = stas{is};
         if overwrite==false && exist([datadir,evdir,'/',stas{is},'.mat'],'file')==2, continue; end
         
@@ -68,23 +75,34 @@ for ie = 315:norids % 1:norids
         dbclose(db);
         if ~iscell(chans), chans = {chans}; end;
         
+        % for OBS, if the option is selected, grab big noise window too!
+        if strcmp(statype(is),'OBS')
+            if getnoise
+                waveform_start_time = epoch2str(evtime + datawind(1) + OBSnoiseprewind(1) - 1,'%Y-%m-%d %H:%M:%S'); % inc buffer
+                waveform_end_time   = epoch2str(evtime + datawind(2) + OBSnoiseprewind(2) + 1,'%Y-%m-%d %H:%M:%S'); % inc buffer
+            end
+        end
+        
+        
         % check this station was alive for this event
         ondate = num2str(unique(ondates)); offdate = num2str(unique(offdates));
         onepoch = str2epoch([ondate(1:4),'/',ondate(5:7),' 00:00:00']);
         offepoch=str2epoch([offdate(1:4),'/',offdate(5:7),' 23:59:59']);
-        if onepoch  > evtime + datawind(1), continue, end % continue if stat turned on after datwind start
-        if offepoch < evtime - datawind(2), continue, end % continue if stat turned off before datwind end
+        if onepoch  > (evtime + datawind(1) + OBSnoiseprewind(1)) , continue, end % continue if stat turned on after datwind start
+        if offepoch < (evtime + datawind(2) + OBSnoiseprewind(2)), continue, end % continue if stat turned off before datwind end
         
         % make string list of chans to request
         chreq = []; for ic = 1:length(chans), chreq = [chreq,chans{ic},',']; end; chreq = chreq(1:end-1); %#ok<AGROW>
         
         % exceptional names
         if strcmp(sta,'M02CO') || strcmp(sta,'M04CO') || strcmp(sta,'M02CL') || strcmp(sta,'M04CL')
-            sta = sta(1:4);
+            sta_use = sta(1:4);
+        else
+            sta_use = sta;
         end
         
         fprintf('   request station %.0f %s... ',is,stas{is})
-        trace=irisFetch.Traces(nwk{is},sta,'*',chreq,waveform_start_time,waveform_end_time);
+        trace=irisFetch.Traces(nwk{is},sta_use,'*',chreq,waveform_start_time,waveform_end_time);
         if isempty(trace), fprintf('NO DATA\n'); continue; end
         [ trace ] = fixtrace( trace );
         fprintf('got chans '); for ic = 1:length(trace), fprintf('%s, ',trace(ic).channel); end

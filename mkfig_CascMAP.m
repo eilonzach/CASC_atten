@@ -3,8 +3,8 @@
 addpath('/Users/zeilon/Documents/MATLAB/lib/grdread2')
 addpath('/Users/zeilon/Documents/MATLAB/lib/haxby_colourmap')
 
-if ~exist('latlim','var'), latlim=[39 52];      end
-if ~exist('lonlim','var'), lonlim=[-133 -120];  end
+if ~exist('latlims','var'), latlims=[39 51];      end
+if ~exist('lonlims','var'), lonlims=[-132 -120];  end
 
 cd('/Users/zeilon/Documents/MATLAB/CASC_atten/mapdata');
 
@@ -28,7 +28,7 @@ fzs = dlmread('transforms_xy'); % load transforms & fracture zones
 [Vnam,Vlon,Vlat,~,~] = textread('volcanoes','%s %f %f %s %s','headerlines',1);
 
 
-clf, set(gcf,'position',[200 200 600 800])
+clf, set(gcf,'position',[200 200 650 800])
 
 %% Un-comment to make a new coastline object
 % m_proj('mercator','longitudes',lonlim,'latitudes',latlim);
@@ -51,18 +51,18 @@ scatter( Vlon, Vlat,65,'k','^','filled') %Volcanoes
 plot(jdf(:,1),jdf(:,2),'k','Linewidth',2) % ridge
 plot(fzs(:,1),fzs(:,2),'--k','Linewidth',1) % transforms
 
-% plot section
-plot(section_lola(:,1),section_lola(:,2),'k','LineWidth',2)
-plot(linterp(section_x,section_lola(:,1),[-100:100:700]'),...
-     linterp(section_x,section_lola(:,2),[-100:100:700]'),...
-     '.k','MarkerSize',25)
-text(linterp(section_x,section_lola(:,1),[-100:100:700]'),...
-     linterp(section_x,section_lola(:,2),[-100:100:700]')+0.12,...
-     num2str([-100:100:700]'),'FontWeight','bold')
+% % plot section
+% plot(section_lola(:,1),section_lola(:,2),'k','LineWidth',2)
+% plot(linterp(section_x,section_lola(:,1),[-100:100:700]'),...
+%      linterp(section_x,section_lola(:,2),[-100:100:700]'),...
+%      '.k','MarkerSize',25)
+% text(linterp(section_x,section_lola(:,1),[-100:100:700]'),...
+%      linterp(section_x,section_lola(:,2),[-100:100:700]')+0.12,...
+%      num2str([-100:100:700]'),'FontWeight','bold')
 
 
-xlim(lonlim)
-ylim(latlim)
+xlim(lonlims)
+ylim(latlims)
 grid on
 box on
 

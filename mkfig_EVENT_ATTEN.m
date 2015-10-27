@@ -1,0 +1,114 @@
+% SCRIPT TO MAKE A FIGURE OF THE ATTENUATION (SEEN IN TIME AND FREQ DOMAIN)
+% OF A SINGLE EVENT - uses plot_ATTEN_TandF_domain
+clear all
+close all
+cd /Users/zeilon/Documents/MATLAB/CASC_atten
+addpath('matguts')
+
+%% parameters
+phase = 'S';
+component = 'T'; %'Z', 'R', or 'T'
+orid = 269; %263; %269/263 for S %275;
+
+snrmin = 20;
+latlims = [44.2 48]; % [-90 90]
+lonlims = [-132 -120]; % [-180 180]
+refsta  = 'J50C';
+
+ifsave   = true;
+
+%% directories 
+% ANTELOPE DB DETAILS
+dbdir = '/Users/zeilon/Work/CASCADIA/CAdb/'; % needs final slash
+dbnam = 'cascattendb';
+% DATA DIRECTORY (top level)
+datadir = '/Volumes/DATA/CASCADIA/DATA/'; % needs final slash
+
+%% =================================================================== %%
+%% ==========================  GET TO WORK  ========================== %%
+%% =================================================================== %%
+
+% GET EVENTS DATA
+db = dbopen([dbdir,dbnam],'r');
+dbor = dblookup_table(db,'origin');
+dbors = dbsubset(dbor,sprintf('orid == %.0f',orid));
+[elat,elon,edep,evtime,mag] = dbgetv(dbors,'lat','lon','depth','time','ms');
+dbclose(db);
+
+fprintf('\nOrid %.0f, M%.1f on %s at [%.2f, %.2f], %.0f km deep\n\n',...
+    orid,mag,epoch2str(evtime,'%Y-%m-%d'),elat,elon,edep)
+
+% name files and directories
+evdir       = [num2str(orid,'%03d'),'_',epoch2str(evtime,'%Y%m%d%H%M'),'/'];
+datinfofile = [datadir,evdir,'_datinfo_',phase];
+arfile      = [datadir,evdir,'_EQAR_',phase,'_',component];
+
+% check files exist
+if ~exist([datinfofile,'.mat'],'file'), fprintf('No station mat files for this event\n'), end
+if ~exist([arfile,'.mat'],'file'), fprintf('No arfile for this event + phase\n'), end
+
+% load files
+load(datinfofile) % loads datinfo stucture
+load(arfile)      % loads eqar structure
+
+% options to skip
+if isempty(datinfo), fprintf('No station mat files for this event\n'), end
+if all([eqar.pred_arrT]==0), fprintf('No %s arrivals for this event\n',phase), return, end
+
+
+%% ========================== START PLOTTING =============================
+
+% QC
+indgd = 1:size(eqar);
+indgd(isnan([eqar(indgd).snr_wf])) = []; % kill nan traces
+indgd([eqar(indgd).snr_wf]<snrmin) = []; % kill low snr traces
+indgd([eqar(indgd).slat]<latlims(1)) = []; % kill low-lat traces
+indgd([eqar(indgd).slat]>latlims(2)) = []; % kill high-lat traces
+indgd([eqar(indgd).slon]<lonlims(1)) = []; % kill too-east traces
+indgd([eqar(indgd).slon]>lonlims(2)) = []; % kill too-west traces
+% indgd(cellfun('isempty',regexp({eqar(indgd).sta},'([J,F,M,G]*[0-9][0-9][A-C]$)'))) = []; % kill land
+% indgd(~cellfun('isempty',regexp({eqar(indgd).sta},'FN'))) = [];% kill 'FN___' stas
+% indgd(~cellfun('isempty',regexp({eqar(indgd).sta},'M0'))) = [];% kill 'FN___' stas
+if length(indgd) < 2, fprintf('NO GOOD TRACES/ARRIVALS, skip...\n'), return, end
+
+
+plot_ATTEN_TandF_domain( eqar(indgd), refsta )
+
+
+%% spectral ratios
+figure(3), set(gcf,'position',[400 400 800 450])
+set(gca,'fontsize',14,'XTick',[0.05:0.05:0.25])
+ylim([-2.5 1.5])
+if ifsave
+    save2pdf(3,sprintf('1evt_specratios_%s_%s_%.0f_%s',...
+        phase,component,orid,epoch2str(evtime,'%Y-%m-%d')),'figs')
+end
+
+%% waveforms
+figure(2), 
+set(gca,'fontsize',14)
+if ifsave
+    save2pdf(2,sprintf('1evt_waveforms_%s_%s_%.0f_%s',...
+        phase,component,orid,epoch2str(evtime,'%Y-%m-%d')),'figs')
+end
+
+%% mapview
+figure(31), 
+set(gcf,'position',[400 400 750 450])
+axis([lonlims latlims]+[-1 0 -1.4 1.5])
+set(gca,'fontsize',14)
+title('$\Delta t^*$ recorded across JdF OBS stations','interpreter','latex','fontsize',18)
+
+if ifsave
+    save2pdf(31,sprintf('1evt_dtstar_map_%s_%s_%.0f_%s',...
+        phase,component,orid,epoch2str(evtime,'%Y-%m-%d')),'figs')
+end
+
+%% section
+figure(17), 
+% title('Section of $\Delta t^*$ and $\delta T$ recorded across JdF ','interpreter','latex','fontsize',18)
+if ifsave
+    save2pdf(17,sprintf('1evt_section_%s_%s_%.0f_%s',...
+        phase,component,orid,epoch2str(evtime,'%Y-%m-%d')),'figs')
+end
+

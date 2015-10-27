@@ -1,5 +1,6 @@
 % script to go through data and reset to raw traces and channels=
 clear all
+cd ~/Documents/MATLAB/CASC_atten/
 addpath('matguts')
 
 overwrite = true;
@@ -9,7 +10,7 @@ dbdir = '/Users/zeilon/Work/CASCADIA/CAdb/'; % needs final slash
 dbnam = 'cascattendb';
 
 % path to top level of directory tree for data
-datadir = '~/Work/CASCADIA/DATA/'; % needs final slash
+datadir = '/Volumes/DATA/CASCADIA/DATA/'; % needs final slash
 
 %% get to work
 db = dbopen([dbdir,dbnam],'r');
@@ -18,15 +19,18 @@ dbor = dblookup_table(db,'origin');
 norids = dbnrecs(dbor);
 dbclose(db);
 
-for ie = 86:86 % 1:norids % loop on orids
+for ie = 153:153 % 1:norids % loop on orids
     fprintf('\n Orid %.0f %s \n\n',orids(ie),epoch2str(evtimes(ie),'%Y-%m-%d %H:%M:%S'))
-    evdir = [num2str(orids(ie),'%03d'),'_',epoch2str(evtimes(ie),'%Y%m%d%H%M'),'/'];
-    load([datadir,evdir,'_datinfo.mat'])
+    evdir    = [num2str(orids(ie),'%03d'),'_',epoch2str(evtimes(ie),'%Y%m%d%H%M'),'/'];
+    datinfofile = [datadir,evdir,'_datinfo'];
+   
+    % check files exist
+    if ~exist([datinfofile,'.mat'],'file'), fprintf('No station mat files for this event\n');continue, end
+    load(datinfofile)
     if isempty(datinfo), fprintf('No station mat files for this event\n');continue, end
 
     for is = 1:length(datinfo) % loop on stas
-
-        sta = datinfo(is).sta; % sta name
+        sta = datinfo(is).sta; % sta name        
         load([datadir,evdir,sta,'.mat']); % load sta data for this evt
         fprintf('Station %-5s...',sta)
         data.dat    = data.raw.dat;
@@ -49,7 +53,10 @@ for ie = 86:86 % 1:norids % loop on orids
         %% log reset and save
         fprintf(' reset\n')
         save([datadir,evdir,sta],'data')
-        save([datadir,evdir,'_datinfo'],'datinfo')
+        save(datinfofile,'datinfo')
+        
+        copyfile([datinfofile,'.mat'],[datinfofile,'_P.mat'])
+        copyfile([datinfofile,'.mat'],[datinfofile,'_S.mat'])
             
     end % loop on stas
 

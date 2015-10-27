@@ -8,11 +8,11 @@ overwrite = true;
 oriedir = '~/Work/CASCADIA/ORIENTATIONS_RF/';
 
 % antelope db details
-dbdir = '/Users/zeilon/Work/CASCADIA/CAdb/'; % needs final slash
-dbnam = 'cascattendb';
+dbdir = '/Users/zeilon/Work/CASCADIA/CAdb2/'; % needs final slash
+dbnam = 'cascBIGdb';
 
 % path to top level of directory tree for data
-datadir = '~/Work/CASCADIA/DATA/'; % needs final slash
+datadir = '/VOLUMES/DATA/CASCADIA/DATA/'; % needs final slash
 
 %% get to work
 
@@ -24,11 +24,13 @@ dbor = dblookup_table(db,'origin');
 norids = dbnrecs(dbor);
 dbclose(db);
 
-for ie = 86:86 % 1:norids % loop on orids
+for ie = 575:norids % 1:norids % loop on orids
     fprintf('\n Orid %.0f %s \n\n',orids(ie),epoch2str(evtimes(ie),'%Y-%m-%d %H:%M:%S'))
     evdir = [num2str(orids(ie),'%03d'),'_',epoch2str(evtimes(ie),'%Y%m%d%H%M'),'/'];
-%     stafiles = dir([datadir,evdir]); stafiles = stafiles(3:end);
-    load([datadir,evdir,'_datinfo.mat'])
+    datinfofile = [datadir,evdir,'_datinfo'];
+
+    if ~exist([datinfofile,'.mat'],'file'), fprintf('No data at all for this event\n'), continue, end
+    load(datinfofile)
     if isempty(datinfo), fprintf('No station mat files for this event\n');continue, end
 
     for is = 1:length(datinfo) % loop on stas
@@ -37,7 +39,6 @@ for ie = 86:86 % 1:norids % loop on orids
         sta = datinfo(is).sta; % sta name
         fprintf('Station %s...',sta)
         load([datadir,evdir,sta,'.mat']); % load sta data for this evt
-        if strcmp(sta,'M02CO') || strcmp(sta,'M04CO'), sta = sta(1:4); end % rename problem stations
         
         yesE = any(strcmp(datinfo(is).chans,'E'));
         yesN = any(strcmp(datinfo(is).chans,'N'));
@@ -61,11 +62,14 @@ for ie = 86:86 % 1:norids % loop on orids
             newdat = zeros(size(data.dat));
             sor = sind(chans.azimuth(icn));
             cor = cosd(chans.azimuth(icn));
+            
+            ic_new = [ich icn ice icz];
 
+            newdat(:,ich) = data.dat(:,ich);
             newdat(:,icn) = cor*data.dat(:,icn) - sor*data.dat(:,ice);    % NORTH
             newdat(:,ice) = sor*data.dat(:,icn) + cor*data.dat(:,ice);    % EAST
-            newdat(:,ich) = data.dat(:,ich);
             newdat(:,icz) = data.dat(:,icz);
+            newdat = newdat(:,ic_new);
             
             chans.name = chans.name([ich,icn,ice,icz]);
             chans.component = chans.component([ich,icn,ice,icz]);
@@ -102,17 +106,39 @@ for ie = 86:86 % 1:norids % loop on orids
             ic2 = find(strcmp(chans.component,'2')); % instrument E
             icz = find(strcmp(chans.component,'Z'));
             
+            ic_new = [ich ic1 ic2 icz];
+
+            orientation = [];
             if any(chans.azimuth([ic1,ic2]))
                 orientation = chans.azimuth(ic1);
+                if chans.azimuth(ic2)-chans.azimuth(ic1) ~= 90, fprintf('Channels in unexpected order! Skipping...\n'), continue, end
                 fprintf(' using IRIS orientation')
-            elseif ~any(chans.azimuth([ic1,ic2]))
-                orfile = dir([oriedir,sta,'*']);
-                if isempty(orfile), fprintf(' no orientation given, CANNOT ROTATE\n'), continue, end
-                or = load([oriedir,orfile.name]);
-                orientation = or.orientation;
-                fprintf(' using Helen RF orientation')
+            elseif ~any(chans.azimuth([ic1,ic2]))        
+%                 if strcmp(sta,'M02CO') || strcmp(sta,'M04CO'), sta_use = sta(1:4); else sta_use = sta; end % rename problem stations
+%                 orfile = dir([oriedir,sta_use,'*']);
+%                 if ~isempty(orfile) % use helen's orientation
+%                     or = load([oriedir,orfile.name]);
+%                     orientation = or.orientation;
+%                     fprintf(' using Helen RF orientation')
+%                 else
+                db = dbopen([dbdir,dbnam],'r');
+                dbsch = dblookup_table(db,'sitechan');
+                dbsch.record = dbfind(dbsch,sprintf('sta == "%s" && chan == "%s"',sta,chans.name{ic1}));
+                [orientation1] = dbgetv(dbsch,'hang'); % hang of nominal north
+                dbsch.record = dbfind(dbsch,sprintf('sta == "%s" && chan == "%s"',sta,chans.name{ic2}));
+                [orientation2] = dbgetv(dbsch,'hang'); % hang of nominal east                
+                dbclose(db);
+                if mod(orientation1+90,360) == orientation2 % check north is 90 acw of east
+                    orientation = orientation1;
+                    fprintf(' using OBSIP orientation')
+                end
+%                 end
             end
-
+            if isempty(orientation)
+                fprintf(' no orientation given, CANNOT ROTATE\n'), continue
+            end
+            
+                
             newdat = zeros(size(data.dat));
             sor = sind(orientation);
             cor = cosd(orientation);
@@ -122,6 +148,8 @@ for ie = 86:86 % 1:norids % loop on orids
             newdat(:,ich) = data.dat(:,ich);
             newdat(:,icz) = data.dat(:,icz);
             
+            newdat = newdat(:,ic_new);
+
             % alter chans
             chans.name([ic1,ic2]) = {[chans.name{ic1}(1:2),'N'],[chans.name{ic2}(1:2),'E']};
             chans.component([ic1,ic2]) = {'N','E'};
@@ -141,7 +169,10 @@ for ie = 86:86 % 1:norids % loop on orids
         save([datadir,evdir,sta],'data')
 
     end % loop on stas
-    save([datadir,evdir,'_datinfo'],'datinfo')
+    save(datinfofile,'datinfo')
+
+    copyfile([datinfofile,'.mat'],[datinfofile,'_P.mat'])
+    copyfile([datinfofile,'.mat'],[datinfofile,'_S.mat'])
     
 	%% sum up
     fprintf(' STA  CHAN  NEZ  resp  tilt  comp\n')

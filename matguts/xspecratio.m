@@ -1,4 +1,4 @@
-function [ delta_tstar,cov_dtstar,std_dtstar ] = xspecratio( specs,frq,fmax,wtopt,plotopt )
+function [ delta_tstar,cov_dtstar,std_dtstar ] = xspecratio( specs,frq,fmax,fmin,wtopt,plotopt )
 %[ delta_tstar ] = Untitled( specs,frq,fmax,wtopt,plotopt )
 %   Function to calculate differential t-star by taking pair-wise spectral
 %   ratios for all combinations of stations' spectra and then using a
@@ -11,6 +11,7 @@ function [ delta_tstar,cov_dtstar,std_dtstar ] = xspecratio( specs,frq,fmax,wtop
 %    specs   - [nfreq x nstas] matrix of all the spectra, in columns
 %    frq     - [nfreq x 1] vector of frequencies 
 %    fmax    - high frequency end of fitting window
+%    fmin    - low frequency end of fitting window
 %    wtopt   - (optional, default=0) to weight least-squares inversion by
 %               formal error in the linear fit to the spectral ratio
 %    plotopt - (optional, default=0) to plot spectra over plotting interval
@@ -48,7 +49,7 @@ for jj = ii+1:M
     % take logarithm
     lnR = log(R); 
         
-    ind = frq < fmax;
+    ind = frq <= fmax & frq >= fmin ;
 
 
     

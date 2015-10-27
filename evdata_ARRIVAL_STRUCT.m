@@ -5,17 +5,18 @@ clear all
 addpath('matguts')
 
 %% parameters
-phase = 'P';
+overwrite = true;
+phase = 'S';
 resamprate = 40 ; % new, common sample rate
 wind = [-200 200]; % seconds before and after arrival to save data for this arrival
 
 
 %% directories 
 % ANTELOPE DB DETAILS
-dbdir = '/Users/zeilon/Work/CASCADIA/CAdb/'; % needs final slash
-dbnam = 'cascattendb';
+dbdir = '/Users/zeilon/Work/CASCADIA/CAdb2/'; % needs final slash
+dbnam = 'cascBIGdb';
 % DATA DIRECTORY (top level)
-datadir = '~/Work/CASCADIA/DATA/'; % needs final slash
+datadir = '/Volumes/DATA/CASCADIA/DATA/'; % needs final slash
 
 %% =================================================================== %%
 %% ==========================  GET TO WORK  ========================== %%
@@ -28,19 +29,26 @@ dbor = dblookup_table(db,'origin');
 norids = dbnrecs(dbor);
 dbclose(db);
 
-for ie = 85:85 % 44:norids % loop on orids
+for ie = 383:387 % 44:norids % loop on orids
     fprintf('\n Orid %.0f %s \n\n',orids(ie),epoch2str(evtimes(ie),'%Y-%m-%d %H:%M:%S'))
     evdir = [num2str(orids(ie),'%03d'),'_',epoch2str(evtimes(ie),'%Y%m%d%H%M'),'/'];
-    if ~exist([datadir,evdir,'_datinfo.mat'],'file'), fprintf('No station mat files for this event\n');continue, end
-    load([datadir,evdir,'_datinfo.mat'])
+    if ~exist([datadir,evdir,'_datinfo.mat'],'file'), fprintf('No data at all for this event\n'), continue, end
+    datinfofile = [datadir,evdir,'_datinfo'];
+    load(datinfofile)
     if isempty(datinfo), fprintf('No station mat files for this event\n');continue, end
     nstas = length(datinfo);
 
     ofile = [datadir,evdir,'_EQAR_',phase];
-    if exist([ofile,'.mat'],'file')
-        yn = input(sprintf('%s EQAR file exists, overwrite? [y/n] ',phase),'s');
+    if exist([ofile,'_Z.mat'],'file')
+        if overwrite
+            yn = 'y';
+        else
+            yn = input(sprintf('%s EQAR file exists, overwrite? [y/n] ',phase),'s');
+        end
         if strcmp(yn,'y')
-            delete(ofile)
+            delete([ofile,'_Z.mat'])
+            delete([ofile,'_R.mat'])
+            delete([ofile,'_T.mat'])
         else
             fprintf('ok, skipping\n')
             continue
@@ -82,7 +90,7 @@ for ie = 85:85 % 44:norids % loop on orids
         eqar(is).seaz = data.seaz;
 
         % arrival details
-        ip = strcmp({data.phases.phase},phase);
+        ip = find(strcmp({data.phases.phase},phase),1,'first');
         eqar(is).rayp = data.phases(ip).rayparameter;
         eqar(is).pred_arrT = data.phases(ip).artime;
         
@@ -99,7 +107,7 @@ for ie = 85:85 % 44:norids % loop on orids
         end
         
         if ~datinfo(is).NEZ
-            fprintf('must be rotated\n'), continue
+            fprintf(' not rotated\n'), continue
         else
             if data.chans.azimuth(strcmp(data.chans.component,'N')) ~=0, error('Bad instrument orientation\n'), end
             datN = interp1(data.tt,data.dat(:,strcmp(data.chans.component,'N')),tt);
@@ -113,5 +121,11 @@ for ie = 85:85 % 44:norids % loop on orids
     end % loop on stas
 
     % SAVE
-    save(ofile,'eqar')    
+    save([ofile,'_Z.mat'],'eqar')
+    save([ofile,'_R.mat'],'eqar')
+    save([ofile,'_T.mat'],'eqar')
+    
+    copyfile([datinfofile,'.mat'],[datinfofile,'_',phase,'.mat'])
+
+    
 end% loop on orids
