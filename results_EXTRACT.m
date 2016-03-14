@@ -2,21 +2,21 @@
 clear all
 % if running alone, establish these, otherwise use previous values
 if ~exist('phase') || ~exist('component') 
-phase = 'S';
-component = 'T';
+phase = 'P';
+component = 'Z';
 end
 
 %% directories 
 % ANTELOPE DB DETAILS
 dbdir = '/Users/zeilon/Work/CASCADIA/CAdb/'; % needs final slash
-dbnam = 'cascattendb';
+dbnam = 'cascBIGdb';
 % DATA DIRECTORY (top level)
 datadir = '/Volumes/DATA/CASCADIA/DATA/'; % needs final slash
 % RESULTS DIRECTORY
 resdir = '~/Documents/MATLAB/CASC_atten/results/'; % needs final slash
 
 %% conditions
-mag_min = 6.5; % skip events if below this mag
+mag_min = 6.25; % skip events if below this mag
 acor_min = 0.8; % skip events if xcor max below this acor
 snr_min = 10; % skip result if data below this snr
 
@@ -36,8 +36,10 @@ dbclose(db)
 
 all_dT     = nan(nstas,norids);
 all_dtstar = nan(nstas,norids);
+all_dT_comb = nan(nstas,norids);
+all_dtstar_comb = nan(nstas,norids);
 
-for ie = 1:norids % 44:norids % loop on orids
+for ie = 1:402 % 44:norids % loop on orids
     fprintf('Orid %.0f\n',ie)
     if  mags(ie)<mag_min, continue, end
     %% grab data!
@@ -52,9 +54,7 @@ for ie = 1:norids % 44:norids % loop on orids
     load(datinfofile) % loads datinfo stucture
     % options to skip
     if isempty(datinfo), fprintf('No station mat files for this event\n'); continue, end
-    if ~isfield(datinfo,'dtstar') 
-        continue
-    end
+
     % load data file
     load(arfile)      % loads eqar structure
     if all([eqar.pred_arrT]==0), fprintf('No %s arrivals for this event\n',phase), continue, end
@@ -79,10 +79,24 @@ for ie = 1:norids % 44:norids % loop on orids
         all_dtstar(ind,ie) = eqar(is).dtstar;
     end
     
+    %% parse dtstar_COMB data
+    if ~isfield(eqar,'dtstar_comb'), fprintf('   NEED TO CALC DTSTAR w COMB\n',phase), continue, end
+    for is = 1:length(eqar)
+        if eqar(is).snr_wf < snr_min, continue; end
+        if strcmp(eqar(is).sta,'M08C'), eqar(is).slon = -124.895400; end
+        if isempty(eqar(is).dtstar_comb), continue, end
+        if isnan(eqar(is).dtstar_comb), continue, end
+        [~,ind,~] = intersect(stas,datinfo(is).sta,'stable');
+        all_dT_comb(ind,ie) = eqar(is).dT_comb;
+        all_dtstar_comb(ind,ie) = eqar(is).dtstar_comb;
+    end
+    
 end % loop on orids
 
 save([resdir,'all_dT_',phase,'_',component],'all_dT')
 save([resdir,'all_dtstar_',phase,'_',component],'all_dtstar')
+save([resdir,'all_dTcomb_',phase,'_',component],'all_dT_comb')
+save([resdir,'all_dtstarcomb_',phase,'_',component],'all_dtstar_comb')
 
 
     

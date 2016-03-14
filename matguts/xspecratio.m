@@ -81,7 +81,7 @@ end
 
 % add constraint
 G(N+1,:) = 1;
-dtst(N+1)=0;
+dtst(N+1,:)=0;
 W = diag([diag(W);1]);
 
 delta_tstar = (G'*W*G)\G'*W*dtst;

@@ -4,11 +4,11 @@ close all
 addpath('matguts')
 
 %% parameters
-phase = 'P';
-component = 'Z'; %'Z', 'R', or 'T'
+phase = 'S';
+component = 'T'; %'Z', 'R', or 'T'
 resamprate = 40 ; % new, common sample rate
-% Do filtfs [15 1] for S, and [5 1] for P
-filtfs = 1./[5 1]; % [flo fhi] = 1./[Tmax Tmin] in sec 
+% Do filtfs [12 1] for S, and [5 1] for P
+filtfs = 1./[12 1]; % [flo fhi] = 1./[Tmax Tmin] in sec 
 taperx = 0.2;
 datwind = [-200 200]; % window of data in eqar structure
 prelimwind = [-40 40];
@@ -17,9 +17,11 @@ xcorlagmax = 6;
 acormin = 0.65;
 overwrite = true;
 
+manualkillstas = {''};
+
 %% directories 
 % ANTELOPE DB DETAILS
-dbdir = '/Users/zeilon/Work/CASCADIA/CAdb2/'; % needs final slash
+dbdir = '/Users/zeilon/Work/CASCADIA/CAdb/'; % needs final slash
 dbnam = 'cascBIGdb';
 % DATA DIRECTORY (top level)
 datadir = '/Volumes/DATA/CASCADIA/DATA/'; % needs final slash
@@ -37,7 +39,7 @@ norids = dbnrecs(dbor);
 dbclose(db);
 
 
-for ie = 383:387 % 44:norids % loop on orids
+for ie = 269:269% 44:norids % loop on orids % got to 475 on SKS,R, % got to 190 on S,T
 %     if  mags(ie)<6.9, continue, end
     tic
     close all
@@ -67,6 +69,9 @@ for ie = 383:387 % 44:norids % loop on orids
     end
     if all([eqar.pred_arrT]==0), fprintf('No %s arrivals for this event\n',phase), continue, end
     
+    if strcmp(phase,'SKS') && mean([eqar.gcarc])<85, continue, end
+	if strcmp(phase,'SKP') && mean([eqar.gcarc])<129, continue, end
+
     %% ------------------ GRAB DATA IN RIGHT FORMAT ------------------
     % prep data structures
     nstas = length(datinfo);
@@ -99,15 +104,21 @@ for ie = 383:387 % 44:norids % loop on orids
     indgd(mean(abs(all_dat0(:,indgd)))<1e-16)     = []; % kill zero traces
     indgd(mean(abs(all_datwf(:,indgd)))==0)     = []; % kill zero traces
     indgd(isnan(mean(abs(all_datwf(:,indgd))))) = []; % kill nan traces
+    for ik = 1:length(manualkillstas),indgd(strcmp({eqar(indgd).sta},manualkillstas{ik})) = []; end % kill bad stas traces
+    
+    if strcmp(phase,'SKS') ,indgd([eqar(indgd).gcarc]<86) = []; end % kill close traces
+    
     if length(indgd) < 2, fprintf('NO GOOD TRACES/ARRIVALS, skip...\n'), continue, end
     
+    fprintf('Orid %.0f %s \n',orids(ie),epoch2str(evtimes(ie),'%Y-%m-%d %H:%M:%S'))
 	%% tauptime to help picking
     tauptime('d',mean([eqar.gcarc]),'z',edeps(ie))
   
-	%% ------------------ PICK XCOR WINDOW, RECLEAN ------------------
+%% ------------------ PICK XCOR WINDOW, RECLEAN ------------------
     figure(53), clf, set(gcf,'position',[700 100 1200 800]), hold on
     normf = max(max(abs(all_datwf(:,indgd))));
-    for is = 1:nstas
+    for ig = 1:length(indgd)
+        is = indgd(ig);
         plot(ttws,all_datwf(:,is)/normf/2 + eqar(is).gcarc,'--k','LineWidth',.5)
         text(prelimwind(2)+1,eqar(is).gcarc,datinfo(is).sta)
     end
@@ -194,7 +205,7 @@ for ie = 383:387 % 44:norids % loop on orids
     plot(ttws(1:wlen+1),stk./max(abs(stk)) + axlim(3),'r','LineWidth',1.5)
 	text(ttws(end)+0.5,axlim(3),'*STACK*')
 	xlabel(sprintf('Orid %.0f,  gcarc ~%.1f,  seaz ~%.1f',ie,mean([eqar.gcarc]),mean([eqar.seaz])),'Fontsize',22)
-    ylim([-1 axlim(4)])
+    ylim([-1 1+length(indgd)])
    
     % PICK phase arrival
     axlim = axis;
@@ -220,7 +231,7 @@ for ie = 383:387 % 44:norids % loop on orids
         save(datinfofile,'datinfo');
         continue
     end
-
+return
     %% ---------------------- STORE RESULTS -----------------------
     % STORE RESULTS
     fprintf('Recording results in arrival structure...')
@@ -233,7 +244,9 @@ for ie = 383:387 % 44:norids % loop on orids
     eqar(indgd) =  dealto(eqar(indgd),'par_dT',cp);
 
 	indbd = setdiff(1:length(eqar),indgd);
-    eqar(indbd) =  dealto(eqar(indbd),'dT',nan);
+    if ~isempty(indbd)
+        eqar(indbd) =  dealto(eqar(indbd),'dT',nan);
+    end
 
     
     pause(.1)

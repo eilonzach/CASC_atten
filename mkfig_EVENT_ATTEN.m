@@ -11,16 +11,15 @@ component = 'T'; %'Z', 'R', or 'T'
 orid = 269; %263; %269/263 for S %275;
 
 snrmin = 20;
-latlims = [44.2 48]; % [-90 90]
-lonlims = [-132 -120]; % [-180 180]
-refsta  = 'J50C';
+latlims = [40 48]; % [44.2 48]
+lonlims = [-132 -110]; % [-132 -120]
 
-ifsave   = true;
+ifsave   = false;
 
 %% directories 
 % ANTELOPE DB DETAILS
 dbdir = '/Users/zeilon/Work/CASCADIA/CAdb/'; % needs final slash
-dbnam = 'cascattendb';
+dbnam = 'cascBIGdb';
 % DATA DIRECTORY (top level)
 datadir = '/Volumes/DATA/CASCADIA/DATA/'; % needs final slash
 
@@ -71,8 +70,7 @@ indgd([eqar(indgd).slon]>lonlims(2)) = []; % kill too-west traces
 % indgd(~cellfun('isempty',regexp({eqar(indgd).sta},'M0'))) = [];% kill 'FN___' stas
 if length(indgd) < 2, fprintf('NO GOOD TRACES/ARRIVALS, skip...\n'), return, end
 
-
-plot_ATTEN_TandF_domain( eqar(indgd), refsta )
+plot_ATTEN_TandF_domain_COMB( eqar(indgd) )
 
 
 %% spectral ratios

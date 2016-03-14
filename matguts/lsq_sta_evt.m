@@ -43,13 +43,17 @@ for ie = 1:nevts
     end
 end
 
-
+% 'data' kernel relating each val to the sum of a station and event term
 G = sparse(si,sj,s,N,M,2*N);
 
+% damping matrix
 L = [sparse(nevts,nstas),sparse(1:nevts,1:nevts,ones(nevts,1),nevts,nevts)];
 
-F = [G; epsilon*L];
-f = [d; zeros(nevts,1)];
+% constraint line - station terms must average to zero;
+C = sparse([ones(1,nstas),zeros(1,nevts)]);
+
+F = [G; epsilon*L; C];
+f = [d; zeros(nevts,1);0];
 
 m = [F'*F]\F'*f;
 

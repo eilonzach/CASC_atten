@@ -7,10 +7,13 @@ addpath('matguts')
 %% parameters
 ifsave = 1;
 
+method = 'comb';% 'comb' or 'specR'
+
+plotsize = 800;
 scale = 100; % length of lines
 tdftick = 1;
-phases = {'P'};
-component = 'Z'; %'Z', 'R', or 'T'
+phases = {'P','S'};
+components = {'Z','T'}; %'Z', 'R', or 'T'
 
 keyloc = [-131.1,49.9];
 keysiz = [1.4,1.9];
@@ -18,14 +21,16 @@ keysiz = [1.4,1.9];
 %% directories 
 % ANTELOPE DB DETAILS
 dbdir = '/Users/zeilon/Work/CASCADIA/CAdb/'; % needs final slash
-dbnam = 'cascattendb';
+dbnam = 'cascBIGdb';
 % DATA DIRECTORY (top level)
 datadir = '/Volumes/DATA/CASCADIA/DATA/'; % needs final slash
 % RESULTS DIRECTORY
 resdir = '~/Documents/MATLAB/CASC_atten/results/'; % needs final slash
 addpath('~/Documents/MATLAB/seizmo-master/cmap/');
 
-cmap = blue2red; 
+cmap = parula;
+% tstlim = 2.*[-1.5 0.5];
+
 close all
 %% =================================================================== %%
 %% ==========================  GET TO WORK  ========================== %%
@@ -33,55 +38,55 @@ close all
 
 % GET EVENTS+STATIONS DATA
 [ norids,orids,elats,elons,edeps,evtimes,mags ]  = db_oriddata( dbdir,dbnam );
-[ nstas,stas,slats,slons,selevs ] = db_stadata( dbdir,dbnam );
+[ nstas_all,stas_all,slats_all,slons_all,selevs_all ] = db_stadata( dbdir,dbnam );
 
 % PARSE RESULTS
 % results_parse
 
+%% Get results
 for ip = 1:length(phases)
 phase = phases{ip};
-tdflim = ip*1.5*[-1 1];
+component = components{ip};
+tstlim = ip*[-0.8 0.8];
 
 % LOAD RESULTS
-load([resdir,'all_dT_',phase,'_',component,'.mat']);
+if strcmp(method,'specR')
+    load([resdir,'all_dtstar_',phase,'_',component,'.mat']);
+elseif strcmp(method,'comb')
+    load([resdir,'all_dtstar',method,'_',phase,'_',component,'.mat']);
+    all_dtstar = all_dtstar_comb;
+else
+    error('Need to specify method')
+end
+
+%% parse the stations and their data - collate repeats and remove allnan stas
+[ stas,all_dtstar,slats,slons,selevs ] = results_PARSE_STATIONS( stas_all,all_dtstar,slats_all,slons_all,selevs_all );
+nstas = length(stas);
 
 %% ------------------ MAP WITH DT FOR THIS EVENT ------------------
 
 figure(31), clf, hold on
 mkfig_CascMAP
-set(gcf,'position',[200 300 630 630*plot_size_ratio( lonlims,latlims )])
+lonlims = [-132.1 -120];
+set(gcf,'position',[200 300 plotsize/plot_size_ratio(lonlims,latlims) plotsize])
+set(gca,'xlim',lonlims)
 
+% nnan = ~isnan(nanmean(all_dtstar,2));
+Nobs = sum(~isnan(all_dtstar),2);
+% compute station averages
+[ sta_terms,evt_terms ] = lsq_sta_evt( all_dtstar,0.01);
 
-nnan = ~isnan(nanmean(all_dT,2));
-[ sta_terms,evt_terms ] = lsq_sta_evt( all_dT,0.01 );
-% hp = scatter(slons(nnan),slats(nnan),140,nanmean(all_dT(nnan,:),2),'filled','MarkerEdgeColor','k');
-% hp = scatter(slons(nnan),slats(nnan),10*sum(~isnan(all_dT(nnan,:)),2),nanmean(all_dT(nnan,:),2),'filled','MarkerEdgeColor','k');
-hp = scatter(slons(nnan),slats(nnan),scale*sqrt(sum(~isnan(all_dT(nnan,:)),2)),sta_terms(nnan),'filled','MarkerEdgeColor','k');
+%% plot the station-averaged differential tstar
+hp = scatter(slons,slats,scale*sqrt(Nobs),sta_terms,'filled','MarkerEdgeColor','k');
 
-colormap(cmap), caxis(tdflim)
-
-
-
-% % plot the raw differential travel times
-% dT = [eqar.dT]';
-% seaz  = [eqar.seaz]';
-% slats = [eqar.slat]';
-% slons = [eqar.slon]';
-% 
-% hold on
-% for ia = 1:length(tstar)
-%     line(slons(ia)+[0 sind(seaz(ia))]*scale,...
-%          slats(ia)+[0 cosd(seaz(ia))]*scale,...
-%          'LineWidth',1.9,...
-%          'color',colour_get(tstar(ia),tstlim(2),tstlim(1)));
-% end
-% hold off
+colormap(cmap), caxis(tstlim)
 
 %% colour bar
-cbar_custom(gca, 'location',[-131.4 -131.0 39.2 42.5],'tickside','right',...
-    'lims',tdflim,'tickvals',[tdflim(1):ip*0.5:tdflim(2)],'cmap',cmap,...
+tkvl = unique(round_level([tstlim(1):0.5:tstlim(2)],0.5));
+cbar_custom(gca, 'location',[-131.4 -131. 39.2 42.5],'tickside','right',...
+    'lims',tstlim,'tickvals',tkvl,'cmap',cmap,...
     'FontSize',12,'FontWeight','bold',...
-	'title',sprintf('$\\delta T_%s$ \\,(s)',phase),'interpreter','latex');
+	'title',sprintf('$\\Delta t^*_%s$ \\,(s)',phase),'interpreter','latex');
 
 %% key
 kle = keyloc(1) - 0.5*keysiz(1); kri = keyloc(1) + 0.5*keysiz(1);
@@ -103,14 +108,17 @@ text(kle + 0.62*kw,kbo + 0.435*kh,'10','fontsize',12,'fontweight','bold','vertic
 text(kle + 0.62*kw,kbo + 0.18*kh,'50','fontsize',12,'fontweight','bold','verticalalignment','middle');
 
 %% title
-title(sprintf('$\\delta T$ for $%s$-waves (%s component)',phase,component),...
+title(sprintf('$\\Delta t^*$ for $%s$-waves (%s component) %s',phase,component,method),...
       'FontSize',18,'FontWeight','bold','Interpreter','latex')
-set(gca,'FontSize',14)
-box on
+set(gca,'FontSize',14,'LineWidth',2.5,'box','on')
 
 % save
 if ifsave
-save2pdf(31,sprintf('dT_%s_%s_sta_average',phase,component),'figs');
+save2pdf(31,sprintf('dtstar_map_staav_%s_%s_%s',method,phase,component),'figs');
+
+results = struct('stas',{stas},'dtstar',sta_terms,'slats',slats,'slons',slons,'selevs',selevs,'Nobs',Nobs);
+resfile = sprintf('stav_dtstar%s_%s_%s',method,phase,component);
+save(['results/',resfile],'results')
 end
 
 end

@@ -11,7 +11,7 @@ isfigure = 0;
 respdir = '~/Work/CASCADIA/CAdb/response_BarclayPZ/';
 
 % antelope db details
-dbdir = '/Users/zeilon/Work/CASCADIA/CAdb2/'; % needs final slash
+dbdir = '/Users/zeilon/Work/CASCADIA/CAdb/'; % needs final slash
 dbnam = 'cascBIGdb';
 
 % path to top level of directory tree for data
@@ -27,7 +27,7 @@ dbor = dblookup_table(db,'origin');
 norids = dbnrecs(dbor);
 dbclose(db);
 
-for ie = 483:norids % 1:norids % loop on orids
+for ie = 215:215 % 1:norids % loop on orids
     fprintf('\n Orid %.0f %s \n\n',orids(ie),epoch2str(evtimes(ie),'%Y-%m-%d %H:%M:%S'))
     evdir = [num2str(orids(ie),'%03d'),'_',epoch2str(evtimes(ie),'%Y%m%d%H%M'),'/'];
     evday = epoch2str(evtimes(ie),'%Y%j');
@@ -55,6 +55,7 @@ for ie = 483:norids % 1:norids % loop on orids
         dbclose(db);
 
         if ~iscell(respfiles), respfiles = {respfiles}; end
+        if ~iscell(respdirs), respdirs = {respdirs}; end
         
         load([datadir,evdir,sta,'.mat']); % load sta data for this evt
         if data.rmresp, fprintf(' done already\n'), continue, end % skip if already removed response
@@ -85,6 +86,7 @@ for ie = 483:norids % 1:norids % loop on orids
             respfile = dir([respdirs{iresp},respfiles{iresp},'*']);
             if isempty(respfile), fprintf('NO RESP'), end
             [zeros,poles,gain] = read_sac_pole_zero([respdirs{iresp},respfiles{iresp}]);
+            return
             %% RESPONSE REMOVAL, CRIBBED FROM JINGLE'S rm_resp SCRIPT
             % options
             lo_corner = 0.005;  % in Hz
@@ -110,7 +112,7 @@ for ie = 483:norids % 1:norids % loop on orids
             for ip = 1:length(zeros)
                 resp = resp.*(1i*w - zeros(ip));
             end
-            resp = resp*gain;
+            resp = resp*abs(gain); % made abs to get rid of neg gain issues!
 
             if isfigure
                 figure(33)

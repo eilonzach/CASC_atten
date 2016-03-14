@@ -5,8 +5,8 @@ cd /Users/zeilon/Documents/MATLAB/CASC_atten
 addpath('matguts')
 
 %% parameters
-phase = 'P';
-component = 'Z'; %'Z', 'R', or 'T'
+phase = 'S';
+component = 'T'; %'Z', 'R', or 'T'
 resamprate = 40 ; % new, common sample rate
 filtfs = 1./[40 .1]; % [flo fhi] = 1./[Tmax Tmin] in sec
 taperx = 0.2;
@@ -24,7 +24,7 @@ ifsave    = true;
 %% directories 
 % ANTELOPE DB DETAILS
 dbdir = '/Users/zeilon/Work/CASCADIA/CAdb/'; % needs final slash
-dbnam = 'cascattendb';
+dbnam = 'cascBIGdb';
 % DATA DIRECTORY (top level)
 datadir = '/Volumes/DATA/CASCADIA/DATA/'; % needs final slash
 
@@ -40,7 +40,7 @@ norids = dbnrecs(dbor);
 dbclose(db);
 
 
-for ie = 383:387 % 44:norids % loop on orids
+for ie = 210:285 % 44:norids % loop on orids
 %     if  mags(ie)<6.9, continue, end
     tic
     fprintf('\n Orid %.0f %s \n\n',orids(ie),epoch2str(evtimes(ie),'%Y-%m-%d %H:%M:%S'))
@@ -206,17 +206,18 @@ for ie = 383:387 % 44:norids % loop on orids
     % STORE RESULTS
     fprintf('Recording results in arrival structure...')
     % prep eqar to receive new fields
-    eqar(1).dtstar = []; eqar(1).std_dtstar = []; eqar(1).par_dtstar = [];
+    eqar(1).dtstar = []; eqar(1).std_dtstar = []; eqar(1).par_dtstar_specR = [];
     par_dtstar = struct('comp',component,'filtfs',filtfs,'window',specwind,...
                           'taperx',taperx,'mavwind',mavwind,'hifrq',hifrq,'lofrq',lofrq,'snrmin',snrmin);
                       
     eqar(indgd) =  dealto(eqar(indgd),'dtstar',delta_tstar);
     eqar(indgd) =  dealto(eqar(indgd),'std_dtstar',std_dtstar);
-    eqar(indgd) =  dealto(eqar(indgd),'par_dtstar',par_dtstar);
+    eqar(indgd) =  dealto(eqar(indgd),'par_dtstar_specR',par_dtstar);
 
 	indbd = setdiff(1:length(eqar),indgd);
+    if ~isempty(indbd)
     eqar(indbd) =  dealto(eqar(indbd),'dtstar',nan);
-
+    end
     
     %% -------------------------- PLOTS ---------------------------
     if ifplot
@@ -254,7 +255,7 @@ for ie = 383:387 % 44:norids % loop on orids
         ylim([-9,-2]);
     end % loop on good stas
 
-    plot_ATTEN_TandF_domain( eqar )
+    plot_ATTEN_TandF_domain( eqar(indgd) )
     end % ifplot
     
 	%% -------------------------- SAVE ---------------------------

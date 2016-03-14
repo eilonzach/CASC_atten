@@ -8,7 +8,7 @@ overwrite = true;
 oriedir = '~/Work/CASCADIA/ORIENTATIONS_RF/';
 
 % antelope db details
-dbdir = '/Users/zeilon/Work/CASCADIA/CAdb2/'; % needs final slash
+dbdir = '/Users/zeilon/Work/CASCADIA/CAdb/'; % needs final slash
 dbnam = 'cascBIGdb';
 
 % path to top level of directory tree for data
@@ -24,7 +24,7 @@ dbor = dblookup_table(db,'origin');
 norids = dbnrecs(dbor);
 dbclose(db);
 
-for ie = 575:norids % 1:norids % loop on orids
+for ie = 215:215 % 1:norids % loop on orids
     fprintf('\n Orid %.0f %s \n\n',orids(ie),epoch2str(evtimes(ie),'%Y-%m-%d %H:%M:%S'))
     evdir = [num2str(orids(ie),'%03d'),'_',epoch2str(evtimes(ie),'%Y%m%d%H%M'),'/'];
     datinfofile = [datadir,evdir,'_datinfo'];

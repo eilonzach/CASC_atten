@@ -18,7 +18,7 @@ evrespdir = '~/Work/Codes/evalresp-3.3.3/';
 
 % antelope db details
 dbdir = '/Users/zeilon/Work/CASCADIA/CAdb/'; % needs final slash
-dbnam = 'cascattendb';
+dbnam = 'cascBIGdb';
 
 % path to top level of directory tree for data
 datadir = '/Volumes/DATA/CASCADIA/DATA/'; % needs final slash
@@ -35,7 +35,7 @@ dbor = dblookup_table(db,'origin');
 norids = dbnrecs(dbor);
 dbclose(db);
 
-for ie = 196:196 % 1:norids % loop on orids
+for ie = 215:215 % 1:norids % loop on orids
     fprintf('\n Orid %.0f %s \n\n',orids(ie),epoch2str(evtimes(ie),'%Y-%m-%d %H:%M:%S'))
     evdir = [num2str(orids(ie),'%03d'),'_',epoch2str(evtimes(ie),'%Y%m%d%H%M'),'/'];
     ev_yyyy_jjj = epoch2str(evtimes(ie),'%Y %j');

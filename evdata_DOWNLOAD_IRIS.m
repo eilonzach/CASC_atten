@@ -4,7 +4,9 @@
 % tree where each event has a folder containing .mat files that are the
 % data for each staition.
 clear all
+close all
 cd ~/Documents/MATLAB/CASC_atten
+% mount_drive('DATA','zeilon','eilon.ldeo.columbia.edu')
 
 datawind = [-100 1700]; % time window in seconds after event to [start end]
 
@@ -23,9 +25,8 @@ dbnam = 'cascBIGdb';
 datadir = '/Volumes/DATA/CASCADIA/DATA/'; % needs final slash
 % datadir = '~/Work/CASCADIA/DATA/';
 
-javaaddpath('/Users/zeilon/Documents/MATLAB/IRIS-WS-2.0.14.jar')
-javaaddpath('/Users/zeilon/Documents/MATLAB/IRIS-WS-2.0.14.jar')
-javaaddpath('./IRIS-WS-2.0.14.jar')
+javaaddpath('/Users/zeilon/Documents/MATLAB/IRIS-WS-2.0.15.jar')
+javaaddpath('IRIS-WS-2.0.15.jar')
 addpath('matguts')
 
 
@@ -43,7 +44,7 @@ dbsi = dblookup_table(db,'site');
 nstas = dbnrecs(dbsi);
 dbclose(db);
 
-for ie = 10:100 % 1:norids
+for ie = 30:49 % 1:norids
     % sort out event stuff
     orid = orids(ie);
     elat = elats(ie); elon = elons(ie); edep = edeps(ie); 
@@ -75,14 +76,16 @@ for ie = 10:100 % 1:norids
         dbclose(db);
         if ~iscell(chans), chans = {chans}; end;
         
-        % for OBS, if the option is selected, grab big noise window too!
-        if strcmp(statype(is),'OBS')
+        % calc. data window
+        if strcmp(statype(is),'OBS') % if OBS, if the option is selected, grab big noise window too!
             if getnoise
                 waveform_start_time = epoch2str(evtime + datawind(1) + OBSnoiseprewind(1) - 1,'%Y-%m-%d %H:%M:%S'); % inc buffer
                 waveform_end_time   = epoch2str(evtime + datawind(2) + OBSnoiseprewind(2) + 1,'%Y-%m-%d %H:%M:%S'); % inc buffer
             end
+        else % if LAND
+        waveform_start_time = epoch2str(evtime + datawind(1) - 1,'%Y-%m-%d %H:%M:%S'); % inc buffer
+        waveform_end_time   = epoch2str(evtime + datawind(2) + 1,'%Y-%m-%d %H:%M:%S'); % inc buffer
         end
-        
         
         % check this station was alive for this event
         ondate = num2str(unique(ondates)); offdate = num2str(unique(offdates));
@@ -100,13 +103,14 @@ for ie = 10:100 % 1:norids
         else
             sta_use = sta;
         end
-        
         fprintf('   request station %.0f %s... ',is,stas{is})
+        
+        % ======== GET THE DATA =======
         trace=irisFetch.Traces(nwk{is},sta_use,'*',chreq,waveform_start_time,waveform_end_time);
+        
         if isempty(trace), fprintf('NO DATA\n'); continue; end
         [ trace ] = fixtrace( trace );
         fprintf('got chans '); for ic = 1:length(trace), fprintf('%s, ',trace(ic).channel); end
-        
         % if B and H channels - only keep H (might need higher samprate?)
         if strcmp([trace.channel],'BHEBHNBHZHHEHHNHHZ'), trace = trace(4:6); end
         if strcmp([trace.channel],'HHEHHNHHZBHEBHNBHZ'), trace = trace(1:3); end
@@ -132,7 +136,7 @@ for ie = 10:100 % 1:norids
         samprate = round(unique([trace.sampleRate])); 
         if length(samprate)>1, 
             fprintf(' differnt samprates, downsamp to min'); 
-            samprate = min(unique([trace.sampleRate]));
+            samprate = round(min(unique([trace.sampleRate])));
         end
       
         % TIME
@@ -179,10 +183,10 @@ for ie = 10:100 % 1:norids
         % save
         save([datadir,evdir,'/',stas{is}],'data')
         fprintf('\n')
-    end
+    end %loop on stas
     kill = []; for ii = 1:length(datinfo), if isempty(datinfo(ii).sta), kill = [kill;ii]; end; end
     datinfo(kill) = [];
     save([datadir,evdir,'/_datinfo'],'datinfo')
-end
+end % loop on evts
 
 
