@@ -6,7 +6,10 @@ addpath('matguts')
 
 %% parameters
 ifsave = 1;
+
 method = 'xcorr';% 'comb' or 'xcorr' 
+
+ifOBSonly = true;
 
 plotsize = 800;
 scale = 100; % length of lines
@@ -28,6 +31,8 @@ resdir = '~/Documents/MATLAB/CASC_atten/results/'; % needs final slash
 addpath('~/Documents/MATLAB/seizmo-master/cmap/');
 
 cmap = blue2red; 
+obsstr = ''; if ifOBSonly, obsstr = 'OBS_'; end
+
 close all
 %% =================================================================== %%
 %% ==========================  GET TO WORK  ========================== %%
@@ -48,9 +53,9 @@ tdflim = ip*[-1.1 1.1];
 
 % LOAD RESULTS
 if strcmp(method,'xcorr')
-    load([resdir,'all_dT_',phase,'_',component,'.mat']);
+    load([resdir,'all_dT_',obsstr,phase,'_',component,'.mat']);
 elseif strcmp(method,'comb')
-    load([resdir,'all_dT',method,'_',phase,'_',component,'.mat']);
+    load([resdir,'all_dT',method,'_',obsstr,phase,'_',component,'.mat']);
     all_dT = all_dT_comb;
 else
     error('Need to specify method')
@@ -67,7 +72,7 @@ if strcmp(phase,'P'), topo_cor = topo_cor_P; elseif strcmp(phase,'S'), topo_cor 
 % sta_terms = sta_terms + topo_cor;
 % sta_terms = sta_terms - mean(sta_terms);
 all_dT = all_dT + topo_cor_S*ones(1,size(all_dT,2));
-return
+
 %% ------------------ MAP WITH DT FOR THIS EVENT ------------------
 
 figure(31), clf, hold on
@@ -115,16 +120,16 @@ text(kle + 0.62*kw,kbo + 0.435*kh,'10','fontsize',12,'fontweight','bold','vertic
 text(kle + 0.62*kw,kbo + 0.18*kh,'50','fontsize',12,'fontweight','bold','verticalalignment','middle');
 
 %% title
-title(sprintf('$\\delta T$ for $%s$-waves (%s component)',phase,component),...
+title(sprintf('%s $\\delta T$ for $%s$-waves (%s component)',strtok(obsstr,'_'),phase,component),...
       'FontSize',18,'FontWeight','bold','Interpreter','latex')
 set(gca,'FontSize',14,'LineWidth',2.5,'box','on')
 
 % save
 if ifsave
-save2pdf(31,sprintf('dT_map_staav_%s_%s_%s',method,phase,component),'figs');
+save2pdf(31,sprintf('dT_map_staav_%s_%s%s_%s',method,obsstr,phase,component),'figs');
 
 results = struct('stas',{stas},'dT',sta_terms,'slats',slats,'slons',slons,'selevs',selevs,'Nobs',Nobs);
-resfile = sprintf('stav_dT%s_%s_%s',method,phase,component);
+resfile = sprintf('stav_dT%s_%s%s_%s',method,obsstr,phase,component);
 save(['results/',resfile],'results')
 end
 

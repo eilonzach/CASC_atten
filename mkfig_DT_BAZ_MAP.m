@@ -6,7 +6,10 @@ addpath('matguts')
 
 %% parameters
 ifsave = 1;
+
 method = 'xcorr';% 'comb' or 'xcorr' 
+
+ifOBSonly = true;
 
 plotsize = 800;
 scale = 0.35; % length of lines
@@ -33,6 +36,8 @@ close all
 %% ==========================  GET TO WORK  ========================== %%
 %% =================================================================== %%
 
+obsstr = ''; if ifOBSonly, obsstr = 'OBS_'; end
+
 % GET EVENTS+STATIONS DATA
 [ norids,orids,elats,elons,edeps,evtimes,mags ]  = db_oriddata( dbdir,dbnam );
 [ nstas_all,stas_all,slats_all,slons_all,selevs_all ] = db_stadata( dbdir,dbnam );
@@ -41,16 +46,16 @@ close all
 % results_parse
 
 %% Get results
-for ip = 1:length(phases)
+for ip = 2:length(phases)
 phase = phases{ip};
 component = components{ip};
 tdflim = ip*[-1.1 1.1];
 
 % LOAD RESULTS
 if strcmp(method,'xcorr')
-    load([resdir,'all_dT_',phase,'_',component,'.mat']);
+    load([resdir,'all_dT_',obsstr,phase,'_',component,'.mat']);
 elseif strcmp(method,'comb')
-    load([resdir,'all_dT',method,'_',phase,'_',component,'.mat']);
+    load([resdir,'all_dT',method,'_',obsstr,phase,'_',component,'.mat']);
     all_dT = all_dT_comb;
 else
     error('Need to specify method')
@@ -121,13 +126,13 @@ cbar_custom(gca, 'location',[-131.4 -131.0 39.2 42.5],'tickside','right',...
 % text(kle + 0.62*kw,kbo + 0.18*kh,'50','fontsize',12,'fontweight','bold','verticalalignment','middle');
 
 %% title
-title(sprintf('$\\delta T$ for $%s$-waves (%s component)',phase,component),...
+title(sprintf('%s $\\delta T$ for $%s$-waves (%s component)',strtok(obsstr,'_'),phase,component),...
       'FontSize',18,'FontWeight','bold','Interpreter','latex')
 set(gca,'FontSize',14,'LineWidth',2.5,'box','on')
 
 % save
 if ifsave
-save2pdf(32,sprintf('dT_map_baz_%s_%s_%s',method,phase,component),'figs');
+save2pdf(32,sprintf('dT_map_baz_%s_%s%s_%s',method,obsstr,phase,component),'figs');
 end
 
 end % loop on phases

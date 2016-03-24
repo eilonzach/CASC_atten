@@ -6,6 +6,8 @@ phase = 'P';
 component = 'Z';
 end
 
+ifOBSonly = true;
+
 %% directories 
 % ANTELOPE DB DETAILS
 dbdir = '/Users/zeilon/Work/CASCADIA/CAdb/'; % needs final slash
@@ -34,6 +36,8 @@ dbsi = dblookup_table(db,'site');
 nstas = dbnrecs(dbsi);
 dbclose(db)
 
+obsstr = ''; if ifOBSonly, obsstr = 'OBS_'; end
+
 all_dT     = nan(nstas,norids);
 all_dtstar = nan(nstas,norids);
 all_dT_comb = nan(nstas,norids);
@@ -45,8 +49,8 @@ for ie = 1:402 % 44:norids % loop on orids
     %% grab data!
     % name files and directories
     evdir       = [num2str(orids(ie),'%03d'),'_',epoch2str(evtimes(ie),'%Y%m%d%H%M'),'/'];
-    datinfofile = [datadir,evdir,'_datinfo_',phase];
-    arfile      = [datadir,evdir,'_EQAR_',phase,'_',component];
+    datinfofile = [datadir,evdir,'_datinfo_',obsstr,phase];
+    arfile      = [datadir,evdir,'_EQAR_',obsstr,phase,'_',component];
     % check files exist
     if ~exist([datinfofile,'.mat'],'file'), fprintf('No station mat files for this event\n');continue, end
     if ~exist([arfile,'.mat'],'file'), fprintf('No arfile for this event + phase\n');continue, end    
@@ -93,10 +97,10 @@ for ie = 1:402 % 44:norids % loop on orids
     
 end % loop on orids
 
-save([resdir,'all_dT_',phase,'_',component],'all_dT')
-save([resdir,'all_dtstar_',phase,'_',component],'all_dtstar')
-save([resdir,'all_dTcomb_',phase,'_',component],'all_dT_comb')
-save([resdir,'all_dtstarcomb_',phase,'_',component],'all_dtstar_comb')
+save([resdir,'all_dT_',obsstr,phase,'_',component],'all_dT')
+save([resdir,'all_dtstar_',obsstr,phase,'_',component],'all_dtstar')
+save([resdir,'all_dTcomb_',obsstr,phase,'_',component],'all_dT_comb')
+save([resdir,'all_dtstarcomb_',obsstr,phase,'_',component],'all_dtstar_comb')
 
 
     

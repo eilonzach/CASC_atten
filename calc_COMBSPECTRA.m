@@ -15,6 +15,7 @@ specwind = [-5 30];
 snrmin = 10;
 
 overwrite = true;
+ifOBSonly = true;
 ifplot    = false;
 ifsave    = true;
 ifplotonly = false;
@@ -58,14 +59,16 @@ dbor = dblookup_table(db,'origin');
 norids = dbnrecs(dbor);
 dbclose(db);
 
-for ie = 1:402 % 44:norids % loop on orids
+obsstr = ''; if ifOBSonly, obsstr = 'OBS_'; end
+
+for ie = 1:norids % 44:norids % loop on orids
 %     if  mags(ie)<6.9, continue, end
     tic
     fprintf('\n Orid %.0f %s \n\n',orids(ie),epoch2str(evtimes(ie),'%Y-%m-%d %H:%M:%S'))
     % name files and directories
     evdir       = [num2str(orids(ie),'%03d'),'_',epoch2str(evtimes(ie),'%Y%m%d%H%M'),'/'];
-    datinfofile = [datadir,evdir,'_datinfo_',phase];
-    arfile      = [datadir,evdir,'_EQAR_',phase,'_',component];
+    datinfofile = [datadir,evdir,'_datinfo_',obsstr,phase];
+    arfile      = [datadir,evdir,'_EQAR_',obsstr,phase,'_',component];
    
     % check files exist
     if ~exist([datinfofile,'.mat'],'file'), fprintf('No station mat files for this event\n');continue, end
@@ -133,6 +136,7 @@ for ie = 1:402 % 44:norids % loop on orids
     indgd(mean(abs(all_dat0(:,indgd)))==0)     = []; % kill zero traces
     indgd(mean(abs(all_dat0(:,indgd)))<1e-6)     = []; % kill zero traces
     indgd(isnan(mean(abs(all_dat0(:,indgd))))) = []; % kill nan traces
+    if ~isfield(eqar,'snr_wf'), continue; end % skip if snr not even calculated
     indgd([eqar(indgd).snr_wf]<snrmin)                  = []; % kill low snr traces
     if length(indgd) < 2, fprintf('NO GOOD TRACES/ARRIVALS, skip...\n'), continue, end
 

@@ -3,7 +3,7 @@
 % then using the IRISrequest tools to get and store the data in a directory
 % tree where each event has a folder containing .mat files that are the
 % data for each staition.
-clear all
+% clear all
 close all
 cd ~/Documents/MATLAB/CASC_atten
 % mount_drive('DATA','zeilon','eilon.ldeo.columbia.edu')
@@ -18,7 +18,7 @@ getnoise = true;
 OBSnoiseprewind = [-43200 0]; % time window in seconds after event to [start end] <== 12 hours in advance
 
 % antelope db details
-dbdir = '/Users/zeilon/Work/CASCADIA/CAdb2/'; % needs final slash
+dbdir = '/Users/zeilon/Work/CASCADIA/CAdb/'; % needs final slash
 dbnam = 'cascBIGdb';
 
 % path to top level of directory tree for data
@@ -44,7 +44,7 @@ dbsi = dblookup_table(db,'site');
 nstas = dbnrecs(dbsi);
 dbclose(db);
 
-for ie = 30:49 % 1:norids
+for ie = 215:215 % 1:norids
     % sort out event stuff
     orid = orids(ie);
     elat = elats(ie); elon = elons(ie); edep = edeps(ie); 
@@ -54,9 +54,9 @@ for ie = 30:49 % 1:norids
     % make event directory
     if exist([datadir,evdir],'dir')~=7, mkdir(datadir,evdir); end
     
-    % calc. data window
-    waveform_start_time = epoch2str(evtime + datawind(1) - 1,'%Y-%m-%d %H:%M:%S'); % inc buffer
-    waveform_end_time   = epoch2str(evtime + datawind(2) + 1,'%Y-%m-%d %H:%M:%S'); % inc buffer
+%     % calc. data window
+%     waveform_start_time = epoch2str(evtime + datawind(1) - 1,'%Y-%m-%d %H:%M:%S'); % inc buffer
+%     waveform_end_time   = epoch2str(evtime + datawind(2) + 1,'%Y-%m-%d %H:%M:%S'); % inc buffer
 
     datinfo = struct('sta',[],'chans',[],'NEZ',false,'rmresp',false,'rmtilt',false,'rmcomp',false);
     
@@ -79,20 +79,27 @@ for ie = 30:49 % 1:norids
         % calc. data window
         if strcmp(statype(is),'OBS') % if OBS, if the option is selected, grab big noise window too!
             if getnoise
-                waveform_start_time = epoch2str(evtime + datawind(1) + OBSnoiseprewind(1) - 1,'%Y-%m-%d %H:%M:%S'); % inc buffer
-                waveform_end_time   = epoch2str(evtime + datawind(2) + OBSnoiseprewind(2) + 1,'%Y-%m-%d %H:%M:%S'); % inc buffer
+                STARTtime = evtime + datawind(1) + OBSnoiseprewind(1) - 1; % inc buffer
+                ENDtime   = evtime + datawind(2) + OBSnoiseprewind(2) + 1; % inc buffer
+            else
+                STARTtime = evtime + datawind(1) - 1; % inc buffer
+                ENDtime   = evtime + datawind(2) + 1; % inc buffer
             end
         else % if LAND
-        waveform_start_time = epoch2str(evtime + datawind(1) - 1,'%Y-%m-%d %H:%M:%S'); % inc buffer
-        waveform_end_time   = epoch2str(evtime + datawind(2) + 1,'%Y-%m-%d %H:%M:%S'); % inc buffer
+        STARTtime = evtime + datawind(1) - 1; % inc buffer
+        ENDtime   = evtime + datawind(2) + 1; % inc buffer
         end
+        
+        STARTtime_str = epoch2str(STARTtime,'%Y-%m-%d %H:%M:%S.%s');
+        ENDtime_str   = epoch2str(ENDtime,'%Y-%m-%d %H:%M:%S.%s');
+        
         
         % check this station was alive for this event
         ondate = num2str(unique(ondates)); offdate = num2str(unique(offdates));
         onepoch = str2epoch([ondate(1:4),'/',ondate(5:7),' 00:00:00']);
         offepoch=str2epoch([offdate(1:4),'/',offdate(5:7),' 23:59:59']);
-        if onepoch  > (evtime + datawind(1) + OBSnoiseprewind(1)) , continue, end % continue if stat turned on after datwind start
-        if offepoch < (evtime + datawind(2) + OBSnoiseprewind(2)), continue, end % continue if stat turned off before datwind end
+        if onepoch  > (STARTtime) , continue, end % continue if stat turned on after datwind start
+        if offepoch < (ENDtime), continue, end % continue if stat turned off before datwind end
         
         % make string list of chans to request
         chreq = []; for ic = 1:length(chans), chreq = [chreq,chans{ic},',']; end; chreq = chreq(1:end-1); %#ok<AGROW>
@@ -106,7 +113,7 @@ for ie = 30:49 % 1:norids
         fprintf('   request station %.0f %s... ',is,stas{is})
         
         % ======== GET THE DATA =======
-        trace=irisFetch.Traces(nwk{is},sta_use,'*',chreq,waveform_start_time,waveform_end_time);
+        trace=irisFetch.Traces(nwk{is},sta_use,'*',chreq,STARTtime_str,ENDtime_str);
         
         if isempty(trace), fprintf('NO DATA\n'); continue; end
         [ trace ] = fixtrace( trace );
@@ -135,33 +142,32 @@ for ie = 30:49 % 1:norids
         % SAMPRATE
         samprate = round(unique([trace.sampleRate])); 
         if length(samprate)>1, 
-            fprintf(' differnt samprates, downsamp to min'); 
+            fprintf(' different samprates, downsamp to min'); 
             samprate = round(min(unique([trace.sampleRate])));
         end
       
         % TIME
-        startTime = evtime + datawind(1);
-        endTime   = evtime + datawind(2) - 1./samprate;
-        tt = [startTime:(1./samprate):endTime]'; 
+        tt0 = STARTtime;
+        tt1 = ENDtime - 1./samprate;
+        tt = [tt0:(1./samprate):tt1]'; 
         
         % SAFETY
-        if any([trace.startTime]>epoch2serial(startTime))
+        if any([trace.startTime]>epoch2serial(tt0+1))
             fprintf('REQUESTED DATA ONLY STARTS AFTER DESIRED WINDOW START!!\n')
             continue            
         end
-        if any([trace.endTime]<epoch2serial(endTime))
+        if any([trace.endTime]<epoch2serial(tt1-1))
             fprintf('REQUESTED DATA ENDS BEFORE DESIRED WINDOW END!!\n')
             continue
         end
         
         % data
-        nsamps = abs(diff(datawind))*samprate;
+        nsamps = length(tt);
         dat = nan(nsamps,length(trace));
         for id = 1:length(trace)
         dat(:,id) = interp1(linspace(serial2epoch(trace(id).startTime),...
                                      serial2epoch(trace(id).endTime),...
                                      trace(id).sampleCount),...
-                                     ...
                                      trace(id).data,    tt);
         end
                 

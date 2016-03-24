@@ -4,11 +4,11 @@ close all
 addpath('matguts')
 
 %% parameters
-phase = 'S';
-component = 'T'; %'Z', 'R', or 'T'
+phase = 'P';
+component = 'Z'; %'Z', 'R', or 'T'
 resamprate = 40 ; % new, common sample rate
 % Do filtfs [12 1] for S, and [5 1] for P
-filtfs = 1./[12 1]; % [flo fhi] = 1./[Tmax Tmin] in sec 
+filtfs = 1./[5 1]; % [flo fhi] = 1./[Tmax Tmin] in sec 
 taperx = 0.2;
 datwind = [-200 200]; % window of data in eqar structure
 prelimwind = [-40 40];
@@ -16,6 +16,8 @@ prelimwind = [-40 40];
 xcorlagmax = 6;
 acormin = 0.65;
 overwrite = true;
+
+ifOBSonly = true;
 
 manualkillstas = {''};
 
@@ -38,16 +40,17 @@ dbor = dblookup_table(db,'origin');
 norids = dbnrecs(dbor);
 dbclose(db);
 
+obsstr = ''; if ifOBSonly, obsstr = 'OBS_'; end
 
-for ie = 269:269% 44:norids % loop on orids % got to 475 on SKS,R, % got to 190 on S,T
+for ie = 269:norids% 44:norids % loop on orids % got to 475 on SKS,R, % got to 190 on S,T
 %     if  mags(ie)<6.9, continue, end
     tic
     close all
     fprintf('\n Orid %.0f %s \n\n',orids(ie),epoch2str(evtimes(ie),'%Y-%m-%d %H:%M:%S'))
     % name files and directories
     evdir       = [num2str(orids(ie),'%03d'),'_',epoch2str(evtimes(ie),'%Y%m%d%H%M'),'/'];
-    datinfofile = [datadir,evdir,'_datinfo_',phase];
-    arfile      = [datadir,evdir,'_EQAR_',phase,'_',component];
+    datinfofile = [datadir,evdir,'_datinfo_',obsstr,phase];
+    arfile      = [datadir,evdir,'_EQAR_',obsstr,phase,'_',component];
    
     % check files exist
     if ~exist([datinfofile,'.mat'],'file'), fprintf('No station mat files for this event\n');continue, end
@@ -231,7 +234,7 @@ for ie = 269:269% 44:norids % loop on orids % got to 475 on SKS,R, % got to 190 
         save(datinfofile,'datinfo');
         continue
     end
-return
+
     %% ---------------------- STORE RESULTS -----------------------
     % STORE RESULTS
     fprintf('Recording results in arrival structure...')
@@ -264,4 +267,5 @@ return
     fprintf(' STA  CHAN  NEZ  resp  tilt  comp  xcor\n')
 	for is = 1:length(datinfo), fprintf('%-5s %4s   %1.0f     %1.0f     %1.0f     %1.0f     %1.0f\n',datinfo(is).sta,[datinfo(is).chans{:}],datinfo(is).NEZ,datinfo(is).rmresp,datinfo(is).rmtilt,datinfo(is).rmcomp,datinfo(is).xcor); end
     toc  
+
 end

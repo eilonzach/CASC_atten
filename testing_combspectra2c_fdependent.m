@@ -18,7 +18,7 @@ c0_2 = 3.95e3; % reference velocity in km/s
 
 L = 200e3;
 
-alpha = 0;
+alpha = 0.27;
 
 % calc. true values
 dT = L*(1./c0_2 - 1./c0_1);

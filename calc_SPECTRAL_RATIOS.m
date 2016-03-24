@@ -1,12 +1,12 @@
 % cycle through events and calculate spectral ratios for all stations
-clear all
+% clear all
 close all
 cd /Users/zeilon/Documents/MATLAB/CASC_atten
 addpath('matguts')
 
 %% parameters
-phase = 'S';
-component = 'T'; %'Z', 'R', or 'T'
+phase = 'P';
+component = 'Z'; %'Z', 'R', or 'T'
 resamprate = 40 ; % new, common sample rate
 filtfs = 1./[40 .1]; % [flo fhi] = 1./[Tmax Tmin] in sec
 taperx = 0.2;
@@ -18,7 +18,8 @@ lofrq = 0.05; % uppermost freq to fit (Hz)
 hifrq = 0.25; % uppermost freq to fit (Hz)
 
 overwrite = true;
-ifplot    = true;
+ifOBSonly = true;
+ifplot    = false;
 ifsave    = true;
 
 %% directories 
@@ -39,16 +40,17 @@ dbor = dblookup_table(db,'origin');
 norids = dbnrecs(dbor);
 dbclose(db);
 
+obsstr = ''; if ifOBSonly, obsstr = 'OBS_'; end
 
-for ie = 210:285 % 44:norids % loop on orids
+for ie = 1:norids % 44:norids % loop on orids
 %     if  mags(ie)<6.9, continue, end
     tic
     fprintf('\n Orid %.0f %s \n\n',orids(ie),epoch2str(evtimes(ie),'%Y-%m-%d %H:%M:%S'))
     % name files and directories
     evdir       = [num2str(orids(ie),'%03d'),'_',epoch2str(evtimes(ie),'%Y%m%d%H%M'),'/'];
-    datinfofile = [datadir,evdir,'_datinfo_',phase];
-    arfile      = [datadir,evdir,'_EQAR_',phase,'_',component];
-   
+    datinfofile = [datadir,evdir,'_datinfo_',obsstr,phase];
+    arfile      = [datadir,evdir,'_EQAR_',obsstr,phase,'_',component];
+      
     % check files exist
     if ~exist([datinfofile,'.mat'],'file'), fprintf('No station mat files for this event\n');continue, end
     if ~exist([arfile,'.mat'],'file'), fprintf('No arfile for this event + phase\n');continue, end

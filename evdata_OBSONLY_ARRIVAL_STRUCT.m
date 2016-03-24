@@ -7,8 +7,8 @@ clear all
 addpath('matguts')
 
 %% Parameters
-phase = 'P';
-component = 'Z';
+phase = 'S';
+component = 'T';
 
 %% Directories 
 % ANTELOPE DB DETAILS

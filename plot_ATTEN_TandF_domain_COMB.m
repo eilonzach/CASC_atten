@@ -21,7 +21,7 @@ for is=1:length(eqar_gd), if isempty(eqar_gd(is).dtstar), eqar_gd(is).dtstar=NaN
 
 %% get deets
 phase = eqar_gd(1).phase;
-comp = eqar_gd(1).par_dtstar_specR.comp;
+comp = eqar_gd(1).par_dtstar.comp;
 window = [eqar_gd(1).par_dtstar_comb.wind.prex,eqar_gd(1).par_dtstar_comb.wind.postx];
 fmax = eqar_gd(1).par_dtstar_comb.inv.fmax;
 if isempty(filtfs), filtfs = eqar_gd(1).par_dtstar_specR.filtfs; end
