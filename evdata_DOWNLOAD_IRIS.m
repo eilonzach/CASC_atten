@@ -14,6 +14,8 @@ phases = 'P,S,PKS,SKS';
 
 overwrite = true;
 
+resamprate = 5; % leave empty or zero to use existing samprate
+
 getnoise = true;
 OBSnoiseprewind = [-43200 0]; % time window in seconds after event to [start end] <== 12 hours in advance
 
@@ -22,7 +24,7 @@ dbdir = '/Users/zeilon/Work/CASCADIA/CAdb/'; % needs final slash
 dbnam = 'cascBIGdb';
 
 % path to top level of directory tree for data
-datadir = '/Volumes/DATA/CASCADIA/DATA/'; % needs final slash
+datadir = '/Volumes/DATA_mini/CASCADIA/DATA/'; % needs final slash
 % datadir = '~/Work/CASCADIA/DATA/';
 
 javaaddpath('/Users/zeilon/Documents/MATLAB/IRIS-WS-2.0.15.jar')
@@ -44,7 +46,7 @@ dbsi = dblookup_table(db,'site');
 nstas = dbnrecs(dbsi);
 dbclose(db);
 
-for ie = 215:215 % 1:norids
+for ie = 217:220 % 1:norids
     % sort out event stuff
     orid = orids(ie);
     elat = elats(ie); elon = elons(ie); edep = edeps(ie); 
@@ -54,17 +56,21 @@ for ie = 215:215 % 1:norids
     % make event directory
     if exist([datadir,evdir],'dir')~=7, mkdir(datadir,evdir); end
     
-%     % calc. data window
-%     waveform_start_time = epoch2str(evtime + datawind(1) - 1,'%Y-%m-%d %H:%M:%S'); % inc buffer
-%     waveform_end_time   = epoch2str(evtime + datawind(2) + 1,'%Y-%m-%d %H:%M:%S'); % inc buffer
-
-    datinfo = struct('sta',[],'chans',[],'NEZ',false,'rmresp',false,'rmtilt',false,'rmcomp',false);
+    % datinfo
+    datinfofile = [datadir,evdir,'/_datinfo'];
+    if exist([datinfofile,'.mat'],'file')~=2
+        datinfo = struct('sta',[],'chans',[],'NEZ',false,'rmresp',false,'rmtilt',false,'rmcomp',false,'spectra',false);
+    else
+        load(datinfofile);
+    end
+        
     
     fprintf('REQUESTING DATA FOR EVENT %.0f (%s)\n',orid,evdir)
-    for is = 1:nstas
-%         javaaddpath('/Users/zeilon/Documents/MATLAB/IRIS-WS-2.0.14.jar')
+    for is = 1:nstas % 1:nstas
         sta = stas{is};
-        if overwrite==false && exist([datadir,evdir,'/',stas{is},'.mat'],'file')==2, continue; end
+        datafile = [datadir,evdir,'/',stas{is}];
+        
+        if overwrite==false && exist([datafile,'.mat'],'file')==2, continue; end
         
         % this is where we'll pull out the channel and station on/off info
         db = dbopen([dbdir,dbnam],'r');
@@ -140,23 +146,28 @@ for ie = 215:215 % 1:norids
         [~,seaz] = distance(sta_dts.slat,sta_dts.slon,elat,elon);   
 
         % SAMPRATE
-        samprate = round(unique([trace.sampleRate])); 
-        if length(samprate)>1, 
-            fprintf(' different samprates, downsamp to min'); 
-            samprate = round(min(unique([trace.sampleRate])));
+        if resamprate
+            samprate = resamprate;
+        else
+            samprate = round(unique([trace.sampleRate]));
+            if length(samprate)>1, 
+                fprintf(' different samprates, downsamp to min'); 
+                samprate = round(min(unique([trace.sampleRate])));
+            end
         end
+        
       
         % TIME
-        tt0 = STARTtime;
-        tt1 = ENDtime - 1./samprate;
+        tt0 = STARTtime + 1;
+        tt1 = ENDtime - 1 - 1./samprate;
         tt = [tt0:(1./samprate):tt1]'; 
         
         % SAFETY
-        if any([trace.startTime]>epoch2serial(tt0+1))
+        if any([trace.startTime]>epoch2serial(tt0))
             fprintf('REQUESTED DATA ONLY STARTS AFTER DESIRED WINDOW START!!\n')
             continue            
         end
-        if any([trace.endTime]<epoch2serial(tt1-1))
+        if any([trace.endTime]<epoch2serial(tt1))
             fprintf('REQUESTED DATA ENDS BEFORE DESIRED WINDOW END!!\n')
             continue
         end
@@ -170,7 +181,18 @@ for ie = 215:215 % 1:norids
                                      trace(id).sampleCount),...
                                      trace(id).data,    tt);
         end
-                
+               
+        % fix nans
+        nandat = find(isnan(dat));
+        if ~isempty(nandat)
+            if length(nandat) > 2*length(trace)
+                fprintf('lots of nans - look out')
+            end
+            fprintf('fixing nans')
+            dat(nandat) = 0;
+        end
+            
+        
         % phase and distance details
         TT = tauptime('event',[elat,elon],'depth',edep,'station',[sta_dts.slat,sta_dts.slon],'phases',phases );
         for ip = 1:length(TT)
@@ -185,14 +207,15 @@ for ie = 215:215 % 1:norids
                        'raw',struct('chans',chan_dts,'dat',dat),...
                        'NEZ',false,'rmresp',false,'rmtilt',false,'rmcomp',false);
 
-        datinfo(is,1) = struct('sta',stas{is},'chans',{chan_dts.component},'NEZ',false,'rmresp',false,'rmtilt',false,'rmcomp',false);
+        datinfo(is,1) = struct('sta',stas{is},'chans',{chan_dts.component},'NEZ',false,'rmresp',false,'rmtilt',false,'rmcomp',false,'spectra',false);
         % save
-        save([datadir,evdir,'/',stas{is}],'data')
+        save(datafile,'data')
+        save(datinfofile,'datinfo')
         fprintf('\n')
     end %loop on stas
     kill = []; for ii = 1:length(datinfo), if isempty(datinfo(ii).sta), kill = [kill;ii]; end; end
     datinfo(kill) = [];
-    save([datadir,evdir,'/_datinfo'],'datinfo')
+    save(datinfofile,'datinfo')
 end % loop on evts
 
 

@@ -10,7 +10,7 @@ dbdir = '/Users/zeilon/Work/CASCADIA/CAdb/'; % needs final slash
 dbnam = 'cascBIGdb';
 
 % path to top level of directory tree for data
-datadir = '/Volumes/DATA/CASCADIA/DATA/'; % needs final slash
+datadir = '/Volumes/DATA_mini/CASCADIA/DATA/'; % needs final slash
 
 %% get to work
 db = dbopen([dbdir,dbnam],'r');
@@ -34,6 +34,17 @@ for ie = 215:215 % 1:norids % loop on orids
         load([datadir,evdir,sta,'.mat']); % load sta data for this evt
         fprintf('Station %-5s...',sta)
         data.dat    = data.raw.dat;
+        
+        % fix nans
+        nandat = find(isnan(data.dat));
+        if ~isempty(nandat)
+            if length(nandat) > 2*size(data.dat,2)
+                fprintf('lots of nans - look out ')
+            end
+            fprintf('fixing nans')
+            data.dat(nandat) = 0;
+        end
+            
         data.chans  = data.raw.chans;
         data.NEZ    = false;
         data.rmresp = false;
@@ -61,7 +72,7 @@ for ie = 215:215 % 1:norids % loop on orids
     end % loop on stas
 
 	%% sum up
-    fprintf(' STA  CHAN  NEZ  resp  tilt  comp\n')
-    for is = 1:length(datinfo), fprintf('%-5s %4s   %1.0f     %1.0f     %1.0f     %1.0f\n',datinfo(is).sta,[datinfo(is).chans{:}],datinfo(is).NEZ,datinfo(is).rmresp,datinfo(is).rmtilt,datinfo(is).rmcomp); end
-
+    fprintf(' STA  CHAN  NEZ  resp  spectra  tilt  comp\n')
+    for is = 1:length(datinfo), fprintf('%-5s %4s   %1.0f     %1.0f      %1.0f       %1.0f     %1.0f\n',datinfo(is).sta,[datinfo(is).chans{:}],datinfo(is).NEZ,datinfo(is).rmresp,datinfo(is).spectra,datinfo(is).rmtilt,datinfo(is).rmcomp); end
+    
 end

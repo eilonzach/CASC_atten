@@ -12,7 +12,7 @@ dbdir = '/Users/zeilon/Work/CASCADIA/CAdb/'; % needs final slash
 dbnam = 'cascBIGdb';
 
 % path to top level of directory tree for data
-datadir = '/VOLUMES/DATA/CASCADIA/DATA/'; % needs final slash
+datadir = '/VOLUMES/DATA_mini/CASCADIA/DATA/'; % needs final slash
 
 %% get to work
 

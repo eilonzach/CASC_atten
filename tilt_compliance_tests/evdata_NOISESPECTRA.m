@@ -20,8 +20,7 @@ fmin=0.005;fmax=0.02;
 coh_min=0.8;
 chorz_max=1;
 
-
-ifplot = 0; 
+ifplot = 1; 
 
 % path to sensor tilt data
 tiltdir = '~/Work/CASCADIA/CAdb/tilt_compliance/';
@@ -31,7 +30,7 @@ dbdir = '/Users/zeilon/Work/CASCADIA/CAdb/'; % needs final slash
 dbnam = 'cascBIGdb';
 
 % path to top level of directory tree for data
-datadir = '/Volumes/DATA/CASCADIA/DATA/'; % needs final slash
+datadir = '/Volumes/DATA_mini/CASCADIA/DATA/'; % needs final slash
 
 
 
@@ -45,24 +44,47 @@ for ie = 215:215 % 1:norids % loop on orids
     evdir = [num2str(orids(ie),'%03d'),'_',epoch2str(evtimes(ie),'%Y%m%d%H%M'),'/'];
     evday = epoch2str(evtimes(ie),'%Y%j');
     datinfofile = [datadir,evdir,'_datinfo'];
-   
+           
+    if any((evtimes(ie)-evtimes)>0 & (evtimes(ie)-evtimes) < 24*60*60)
+        fprintf('Another event within prev 24 hrs... skipping\n')
+        continue
+    end
+
     % check files exist
     if ~exist([datinfofile,'.mat'],'file'), fprintf('No data at all for this event\n');continue, end
     load(datinfofile)
     if isempty(datinfo), fprintf('No station mat files for this event\n');continue, end
 
-    for is = 7:length(datinfo) % loop on stas
+    for is = 1:length(datinfo) % loop on stas
         sta = datinfo(is).sta; % sta name
-        fprintf('Station %-5s...',sta)
-        if datinfo(is).rmtilt, fprintf(' done already\n'), continue, end % skip if already removed tilt
         if strcmp(statype(strcmp(stas,sta)),'OBS') ~= 1, continue, end % skip if not an OBS
         
-        load([datadir,evdir,sta,'.mat']); % load sta data for this evt
-        if data.rmtilt, fprintf(' done already\n'), continue, end % skip if already removed tilt
-        
         ofile = [datadir,evdir,sta,'_spectra.mat'];
+        datfile = [datadir,evdir,sta,'.mat'];
+        
+        fprintf('Station %.0f, %-5s...',is,sta)
+        
+        %% load data, be v. careful about overwriting etc., w/ redundancy built in
+        % conditions before even loading - only do if response removed
+        if datinfo(is).spectra & ~overwrite  % skip if already calculated spectra
+            fprintf(' done already...')
+            if ifplot
+                fprintf(' plotting')
+                plot_1evt1sta_spectra(ofile)
+            end
+            fprintf('\n'), continue% skip if already calculated spectra
+        end
+        if datinfo(is).rmresp ~= 1, fprintf(' must remove response\n'), continue, end % skip if response not already removed
+        
+        % load data
+        load(datfile); % load sta data for this evt
+        % second pass on conditions
+        if data.rmtilt, fprintf(' done already\n'), continue, end % skip if already removed tilt
+        if ~data.rmresp, fprintf(' must remove response\n'), continue, end % skip if response not already removed
+        
+        % outfile + check if already exists
         if exist(ofile,'file')==2
-            fprintf(' spectra file exists ')
+            fprintf(' spectra file exists...')
             if overwrite == false, fprintf('skipping...\n'),continue
             else fprintf('overwriting... '), delete(ofile); end
         end
@@ -79,11 +101,11 @@ for ie = 215:215 % 1:norids % loop on orids
         if isempty(ice), ice = find(strcmp(chans.component,'2')); end
         ics = [ich icn ice icz];
                 
-        if length(ics)~=4, continue, end % skip if don't have all 4 chans
-        
-        %% NEED TO USE THE RAW PRESSURE IF THERE IS A LAMONT APG
-        fprintf('NEED TO USE RAW PRESSURE IF LAMONT APG')
-        
+        if length(ics)~=4  % skip if don't have all 4 chans
+            fprintf('only %.0f chans... skipping\n',length(ics));  
+            continue, 
+        end 
+
         %% Get data, reseamp
         inds = noisewind*data.samprate;
         
@@ -93,19 +115,28 @@ for ie = 215:215 % 1:norids % loop on orids
         noiseP  = data.dat(1:inds,ich); noiseP(isnan(noiseP))=0;
         noiset = data.tt(1:inds,1);
         
+        % NEED TO USE THE RAW PRESSURE IF THERE IS A LAMONT APG
+        if strcmp(which_OBS(sta),'LDEO')
+            fprintf('LDEO APG - using raw data ')
+        	ichr = find(strcmp(raw.chans.component,'H'));
+            noiseP  = data.raw.dat(1:inds,ichr); noiseP(isnan(noiseP))=0;
+        end
+                    
         % resamp time vector
         tt0 = 0;
         tt1 = noisewind - 1./resamprate;
         tt = [tt0:(1./resamprate):tt1]';
                 
-        noiseZ = interp1(noiset-noiset(1),noiseZ,tt);
+        noiseZ  = interp1(noiset-noiset(1),noiseZ,tt);
         noiseH1 = interp1(noiset-noiset(1),noiseH1,tt);
         noiseH2 = interp1(noiset-noiset(1),noiseH2,tt);
-        noiseP = interp1(noiset-noiset(1),noiseP,tt);
+        noiseP  = interp1(noiset-noiset(1),noiseP,tt);
         
         %% plot the spectra of the whole thing
-        [ whole_spectra_fig ] = plot_event_spectra( noiseZ,noiseH1,noiseH2,noiseP,tt(1:T*resamprate),Nwin);
-
+        if ifplot
+        [ whole_spectra_fig ] = plot_quick_spectra( noiseZ,noiseH1,noiseH2,noiseP,tt(1:T*resamprate),Nwin);
+        pause
+        end
         
         %% calc some basics
         oldsamprate = data.samprate;
@@ -342,22 +373,22 @@ for ie = 215:215 % 1:norids % loop on orids
             'spectrum_P','spectrum_Z','spectrum_H1','spectrum_H2',...
             'cspectrum_P','cspectrum_Z','cspectrum_H1','cspectrum_H2');
         fprintf(' spectral details saved.\n')
-            
+          
         
+        %% plot
+        if ifplot
+        plot_1evt1sta_spectra(ofile)
+        pause
+        end
+        %% log spectra calc and save
         
-        return
-        %% log tilt removal and save
-        fprintf(' tilt removed\n')
-        data.rmresp = true;
-        save([datadir,evdir,sta],'data')
-        
-        datinfo(is).rmtilt = true;
+        datinfo(is).spectra = true;
         save(datinfofile,'datinfo')
                     
     end % loop on stas
 
 	%% sum up
-    fprintf(' STA  CHAN  NEZ  resp  tilt  comp\n')
-    for is = 1:length(datinfo), fprintf('%-5s %4s   %1.0f     %1.0f     %1.0f     %1.0f\n',datinfo(is).sta,[datinfo(is).chans{:}],datinfo(is).NEZ,datinfo(is).rmresp,datinfo(is).rmtilt,datinfo(is).rmcomp); end
+    fprintf(' STA  CHAN  NEZ  resp  spectra  tilt  comp\n')
+    for is = 1:length(datinfo), fprintf('%-5s %4s   %1.0f     %1.0f      %1.0f       %1.0f     %1.0f\n',datinfo(is).sta,[datinfo(is).chans{:}],datinfo(is).NEZ,datinfo(is).rmresp,datinfo(is).spectra,datinfo(is).rmtilt,datinfo(is).rmcomp); end
             
 end

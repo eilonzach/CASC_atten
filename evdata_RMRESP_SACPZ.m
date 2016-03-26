@@ -1,6 +1,6 @@
 % script to go through data and correct for instrumetn response for  each 
 %  of the station's channels 
-% clear all
+clear all
 addpath('matguts')
 
 overwrite = true;
@@ -15,7 +15,7 @@ dbdir = '/Users/zeilon/Work/CASCADIA/CAdb/'; % needs final slash
 dbnam = 'cascBIGdb';
 
 % path to top level of directory tree for data
-datadir = '/Volumes/DATA/CASCADIA/DATA/'; % needs final slash
+datadir = '/Volumes/DATA_mini/CASCADIA/DATA/'; % needs final slash
 
 %% get to work
 
@@ -85,8 +85,8 @@ for ie = 215:215 % 1:norids % loop on orids
             iresp = strcmp( schans,chans_raw.name(icsr == ics(ic)) ) ;
             respfile = dir([respdirs{iresp},respfiles{iresp},'*']);
             if isempty(respfile), fprintf('NO RESP'), end
-            [zeros,poles,gain] = read_sac_pole_zero([respdirs{iresp},respfiles{iresp}]);
-            return
+            [zz,pp,gain] = read_sac_pole_zero([respdirs{iresp},respfiles{iresp}]);
+
             %% RESPONSE REMOVAL, CRIBBED FROM JINGLE'S rm_resp SCRIPT
             % options
             lo_corner = 0.005;  % in Hz
@@ -106,11 +106,11 @@ for ie = 215:215 % 1:norids % loop on orids
             end
             w = faxis.*2*pi;
             resp = ones(size(w));
-            for ip = 1:length(poles)
-                resp = resp./(1i*w - poles(ip));
+            for ip = 1:length(pp)
+                resp = resp./(1i*w - pp(ip));
             end
-            for ip = 1:length(zeros)
-                resp = resp.*(1i*w - zeros(ip));
+            for ip = 1:length(zz)
+                resp = resp.*(1i*w - zz(ip));
             end
             resp = resp*abs(gain); % made abs to get rid of neg gain issues!
 
