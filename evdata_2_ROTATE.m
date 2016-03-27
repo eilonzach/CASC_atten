@@ -24,7 +24,7 @@ dbor = dblookup_table(db,'origin');
 norids = dbnrecs(dbor);
 dbclose(db);
 
-for ie = 215:215 % 1:norids % loop on orids
+for ie = 222:222 % 1:norids % loop on orids
     fprintf('\n Orid %.0f %s \n\n',orids(ie),epoch2str(evtimes(ie),'%Y-%m-%d %H:%M:%S'))
     evdir = [num2str(orids(ie),'%03d'),'_',epoch2str(evtimes(ie),'%Y%m%d%H%M'),'/'];
     datinfofile = [datadir,evdir,'_datinfo'];
@@ -37,7 +37,7 @@ for ie = 215:215 % 1:norids % loop on orids
         if datinfo(is).NEZ, continue, end % skip if already rotated
         
         sta = datinfo(is).sta; % sta name
-        fprintf('Station %s...',sta)
+        fprintf('Station %.0f %s...',is,sta)
         load([datadir,evdir,sta,'.mat']); % load sta data for this evt
         
         yesE = any(strcmp(datinfo(is).chans,'E'));
@@ -171,9 +171,9 @@ for ie = 215:215 % 1:norids % loop on orids
     end % loop on stas
     save(datinfofile,'datinfo')
 
-    copyfile([datinfofile,'.mat'],[datinfofile,'_P.mat'])
-    copyfile([datinfofile,'.mat'],[datinfofile,'_S.mat'])
-    
+%     copyfile([datinfofile,'.mat'],[datinfofile,'_P.mat'])
+%     copyfile([datinfofile,'.mat'],[datinfofile,'_S.mat'])
+
 	%% sum up
     fprintf(' STA  CHAN  NEZ  resp  tilt  comp\n')
     for is = 1:length(datinfo), fprintf('%-5s %4s   %1.0f     %1.0f     %1.0f     %1.0f\n',datinfo(is).sta,[datinfo(is).chans{:}],datinfo(is).NEZ,datinfo(is).rmresp,datinfo(is).rmtilt,datinfo(is).rmcomp); end

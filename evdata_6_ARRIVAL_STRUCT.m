@@ -6,7 +6,7 @@ addpath('matguts')
 
 %% parameters
 overwrite = true;
-phase = 'PcS';
+phase = 'P';
 resamprate = 40 ; % new, common sample rate
 wind = [-200 200]; % seconds before and after arrival to save data for this arrival
 
@@ -29,7 +29,7 @@ dbor = dblookup_table(db,'origin');
 norids = dbnrecs(dbor);
 dbclose(db);
 
-for ie = 1:norids % 44:norids % loop on orids
+for ie = 215:215 % 44:norids % loop on orids
     fprintf('\n Orid %.0f %s \n\n',orids(ie),epoch2str(evtimes(ie),'%Y-%m-%d %H:%M:%S'))
     evdir = [num2str(orids(ie),'%03d'),'_',epoch2str(evtimes(ie),'%Y%m%d%H%M'),'/'];
     if ~exist([datadir,evdir,'_datinfo.mat'],'file'), fprintf('No data at all for this event\n'), continue, end

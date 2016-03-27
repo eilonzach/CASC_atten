@@ -1,0 +1,382 @@
+% Script to compute spectral characteristics of noise before each event.
+% This script goes through data event by event, then station by station.
+% For OBS stations, it pulls out the 12 hours of noise prior to each event
+% and computes spectra on a set of Nwin windows of noise, saving the
+% outputs into structures within the data directories
+clear all
+
+%% parms
+overwrite = true;
+
+ifplot = 1; 
+ifsavefigs = 1;
+
+%% paths
+cd('/Users/zeilon/Documents/MATLAB/CASC_atten')
+addpath('/Users/zeilon/Documents/MATLAB/helen_dataprocessing')
+addpath('../matguts')
+% path to sensor spectra data
+specdir = '~/Work/CASCADIA/CAdb/spectra/';
+% antelope db details
+dbdir = '/Users/zeilon/Work/CASCADIA/CAdb/'; % needs final slash
+dbnam = 'cascBIGdb';
+% path to top level of directory tree for data
+datadir = '/Volumes/DATA_mini/CASCADIA/DATA/'; % needs final slash
+
+
+
+%% get to work
+[ norids,orids,elats,elons,edeps,evtimes,mags ]  = db_oriddata( dbdir,dbnam ); % load events data
+[ nstas,stas,slats,slons,selevs,ondate,offdate,staname,statype ] = db_stadata( dbdir,dbnam ); %load stations data
+
+for is = 1:nstas % loop on stas
+    sta = stas{is}; % sta name
+   	if strcmp(statype(is),'OBS') ~= 1, continue, end % skip if not an OBS
+	
+    fprintf('Station %.0f, %-5s... ',is,sta)
+    ofile = [specdir,sta,'/',sta,'_spectraavg.mat'];
+    
+	if exist(ofile,'file')==2
+        fprintf('... avg spectra file exists')
+        if overwrite, fprintf('... overwriting'), end
+        if ~overwrite, fprintf('... skipping\n'), continue, end
+    end
+    
+    %% start loop on orids
+    nevts_used = 0;
+    for ie = 1:norids % 1:norids % loop on orids
+        evdir = [num2str(orids(ie),'%03d'),'_',epoch2str(evtimes(ie),'%Y%m%d%H%M'),'/'];
+
+        specfile = [datadir,evdir,sta,'_spectra.mat'];
+        % check files exist
+        if exist(specfile,'file')~=2, continue, end
+
+        fprintf('\n Orid %.0f %s',orids(ie),epoch2str(evtimes(ie),'%Y-%m-%d %H:%M:%S'))
+        
+        %% load specfile
+        load(specfile);
+        freqcomp = sqrt(9.8/(-2*pi*selevs(is)));
+
+%         if check_spec ==1;
+%         in1 = input('Would you like to use data from this day (n/y)? ','s');
+%         if in1 == 'n';
+%             in2 = input('Are you sure you want to delete this day (y)? ','s');
+%             if in2 == 'y'
+%                 delete(fullfile(inpath,spectra_filenames(ie).name));
+%                 continue
+%             end
+%         end
+%         end
+        
+
+        maxpowz(ie) = max(czz_stack)*10;
+        maxpow1(ie) = max(c11_stack)*10;
+        maxpow2(ie) = max(c22_stack)*10;
+        maxpowp(ie) = max(cpp_stack)*10;
+
+        minpowz(ie) = min(czz_stack)/10;
+        minpow1(ie) = min(c11_stack)/10;
+        minpow2(ie) = min(c22_stack)/10;
+        minpowp(ie) = min(cpp_stack)/10;
+
+        czz_all(ie,:) = czz_stack;
+        cpp_all(ie,:) = cpp_stack;
+        c11_all(ie,:) = c11_stack;
+        c22_all(ie,:) = c22_stack;
+
+        coh1z_all(ie,:) = coh1z_stack;
+        coh2z_all(ie,:) = coh2z_stack;
+        cohpz_all(ie,:) = cohpz_stack;
+        coh12_all(ie,:) = coh12_stack;
+        coh1p_all(ie,:) = coh1p_stack;
+        coh2p_all(ie,:) = coh2p_stack;
+
+
+        nevts_used = nevts_used+1;
+        end % loop on events
+    if nevts_used == 0 % this station has no events
+        fprintf('No event spectra for this station\n')
+        continue
+    end
+    
+    return
+    % Printing and label properties
+    figure(3)
+    subplot(411);
+    title(sprintf('Z-component, Station: %s',station));
+    xlabel('Frequency (Hz)')
+    ylabel('Power Spectrum')
+    ylim([10^-20 max(maxpowz)])
+    plot([pper pper],[min(minpowz) max(maxpowz)],'-b','LineWidth',2)
+    hold on
+    plot([sper sper],[min(minpowz) max(maxpowz)],'r','LineWidth',2)
+    hold on
+    plot([freqcomp freqcomp],[min(minpowz) max(maxpowz)],'-k','LineWidth',2)
+    subplot(412);
+    title(sprintf('H1-component, Station: %s',station));
+    xlabel('Frequency (Hz)')
+    ylabel('Power Spectrum')
+    ylim([10^-20 max(maxpow1)])
+    plot([pper pper],[min(minpow1) max(maxpowz)],'-b','LineWidth',2)
+    hold on
+    plot([sper sper],[min(minpow1) max(maxpowz)],'r','LineWidth',2)
+    hold on
+    plot([freqcomp freqcomp],[min(minpow1) max(maxpowz)],'-k','LineWidth',2)
+    subplot(413);
+    title(sprintf('H2-component, Station: %s',station));
+    xlabel('Frequency (Hz)')
+    ylabel('Power Spectrum')
+    ylim([10^-20 max(maxpow2)])
+    plot([pper pper],[min(minpow2) max(maxpowz)],'-b','LineWidth',2)
+    hold on
+    plot([sper sper],[min(minpow2) max(maxpowz)],'r','LineWidth',2)
+    hold on
+    plot([freqcomp freqcomp],[min(minpow2) max(maxpowz)],'-k','LineWidth',2)
+    subplot(414);
+    title(sprintf('P-component, Station: %s',station));
+    xlabel('Frequency (Hz)')
+    ylabel('Power Spectrum')
+    ylim([10^-10 max(maxpowp)])
+    plot([pper pper],[min(minpowp) max(maxpowp)],'-b','LineWidth',2)
+    hold on
+    plot([sper sper],[min(minpowp) max(maxpowp)],'r','LineWidth',2)
+    hold on
+    plot([freqcomp freqcomp],[min(minpowp) max(maxpowp)],'-k','LineWidth',2)
+    set(gcf,'PaperPositionMode','manual');
+    set(gcf,'PaperUnits','inches');
+    set(gcf,'PaperOrientation','portrait');
+    set(gcf,'PaperPosition',[.05 .05 8 10.5]);
+    filename=sprintf('%s/Spectra_%s',figoutpath,station);
+    print(gcf,'-dpng',filename)
+
+    figure(4)
+    subplot(611);
+    title(sprintf('Z-1, Station: %s',station))
+    xlabel('Frequency (Hz)')
+    ylabel('Coherence')
+    ylim([0 1])
+    plot([pper pper],[0 1],'-b','LineWidth',2)
+    hold on
+    plot([sper sper],[0 1],'-r','LineWidth',2)
+    hold on
+    plot([freqcomp freqcomp],[0,1],'-k','LineWidth',2)
+    subplot(612);
+    title(sprintf('Z-2, Station: %s',station))
+    xlabel('Frequency (Hz)')
+    ylabel('Coherence')
+    ylim([0 1])
+    plot([pper pper],[0 1],'-b','LineWidth',2)
+    hold on
+    plot([sper sper],[0 1],'-r','LineWidth',2)
+    hold on
+    plot([freqcomp freqcomp],[0,1],'-k','LineWidth',2)
+    subplot(613);
+    title(sprintf('P-Z, Station: %s',station))
+    xlabel('Frequency (Hz)')
+    ylabel('Coherence')
+    ylim([0 1])
+    plot([pper pper],[0 1],'-b','LineWidth',2)
+    hold on
+    plot([sper sper],[0 1],'-r','LineWidth',2)
+    hold on
+    plot([freqcomp freqcomp],[0,1],'-k','LineWidth',2)
+    subplot(614);
+    title(sprintf('1-2, Station: %s',station))
+    xlabel('Frequency (Hz)')
+    ylabel('Coherence')
+    ylim([0 1])
+    plot([pper pper],[0 1],'-b','LineWidth',2)
+    hold on
+    plot([sper sper],[0 1],'-r','LineWidth',2)
+    hold on
+    plot([freqcomp freqcomp],[0,1],'-k','LineWidth',2)
+    subplot(615);
+    title(sprintf('1-P, Station: %s',station))
+    xlabel('Frequency (Hz)')
+    ylabel('Coherence')
+    ylim([0 1])
+    plot([pper pper],[0 1],'-b','LineWidth',2)
+    hold on
+    plot([sper sper],[0 1],'-r','LineWidth',2)
+    hold on
+    plot([freqcomp freqcomp],[0,1],'-k','LineWidth',2)
+    subplot(616);
+    title(sprintf('2-P, Station: %s',station))
+    xlabel('Frequency (Hz)')
+    ylabel('Coherence')
+    ylim([0 1])
+    plot([pper pper],[0 1],'-b','LineWidth',2)
+    hold on
+    plot([sper sper],[0 1],'-r','LineWidth',2)
+    hold on
+    plot([freqcomp freqcomp],[0,1],'-k','LineWidth',2)
+    set(gcf,'PaperPositionMode','manual');
+    set(gcf,'PaperUnits','inches');
+    set(gcf,'PaperOrientation','portrait');
+    set(gcf,'PaperPosition',[.05 .05 8 10.5]);
+    filename=sprintf('%s/Coherence_%s',figoutpath,station);
+    print(gcf,'-dpng',filename)
+
+    figure(6)
+    subplot(611);
+    title(sprintf('Z-1, Station: %s',station))
+    xlabel('Frequency (Hz)')
+    ylabel('Phase')
+    ylim([-90 90])
+    plot([pper pper],[-90 90],'-b','LineWidth',2)
+    hold on
+    plot([sper sper],[-90 90],'-r','LineWidth',2)
+    hold on
+    plot([freqcomp freqcomp],[-90 90],'-k','LineWidth',2)
+    hold on
+    subplot(612);
+    title(sprintf('Z-2, Station: %s',station))
+    xlabel('Frequency (Hz)')
+    ylabel('Phase')
+    ylim([-90 90])
+    plot([pper pper],[-90 90],'-b','LineWidth',2)
+    hold on
+    plot([sper sper],[-90 90],'-r','LineWidth',2)
+    hold on
+    plot([freqcomp freqcomp],[-90 90],'-k','LineWidth',2)
+    hold on
+    subplot(613);
+    title(sprintf('P-Z, Station: %s',station))
+    xlabel('Frequency (Hz)')
+    ylabel('Phase')
+    ylim([-90 90])
+    plot([pper pper],[-90 90],'-b','LineWidth',2)
+    hold on
+    plot([sper sper],[-90 90],'-r','LineWidth',2)
+    hold on
+    plot([freqcomp freqcomp],[-90 90],'-k','LineWidth',2)
+    hold on
+    subplot(614);
+    title(sprintf('1-2, Station: %s',station))
+    xlabel('Frequency (Hz)')
+    ylabel('Phase')
+    ylim([-90 90])
+    plot([pper pper],[-90 90],'-b','LineWidth',2)
+    hold on
+    plot([sper sper],[-90 90],'-r','LineWidth',2)
+    hold on
+    plot([freqcomp freqcomp],[-90 90],'-k','LineWidth',2)
+    hold on
+    subplot(615);
+    title(sprintf('1-P, Station: %s',station))
+    xlabel('Frequency (Hz)')
+    ylabel('Phase')
+    ylim([-90 90])
+    plot([pper pper],[-90 90],'-b','LineWidth',2)
+    hold on
+    plot([sper sper],[-90 90],'-r','LineWidth',2)
+    hold on
+    plot([freqcomp freqcomp],[-90 90],'-k','LineWidth',2)
+    hold on
+    subplot(616);
+    title(sprintf('2-P, Station: %s',station))
+    xlabel('Frequency (Hz)')
+    ylabel('Phase')
+    ylim([-90 90])
+    plot([pper pper],[-90 90],'-b','LineWidth',2)
+    hold on
+    plot([sper sper],[-90 90],'-r','LineWidth',2)
+    hold on
+    plot([freqcomp freqcomp],[-90 90],'-k','LineWidth',2)
+    hold on
+    set(gcf,'PaperPositionMode','manual');
+    set(gcf,'PaperUnits','inches');
+    set(gcf,'PaperOrientation','portrait');
+    set(gcf,'PaperPosition',[.05 .05 8 10.5]);
+    filename=sprintf('%s/Phase_%s',figoutpath,station);
+    print(gcf,'-dpng',filename)
+
+    figure(5)
+    subplot(611);
+    title(sprintf('Z-1, Station: %s',station))
+    xlabel('Frequency (Hz)')
+    ylabel('Admittance')
+    hold on
+    subplot(612);
+    title(sprintf('Z-2, Station: %s',station))
+    xlabel('Frequency (Hz)')
+    ylabel('Admittance')
+    hold on
+    subplot(613);
+    title(sprintf('P-Z, Station: %s',station))
+    xlabel('Frequency (Hz)')
+    ylabel('Admittance')
+    hold on
+    subplot(614);
+    title(sprintf('1-2, Station: %s',station))
+    xlabel('Frequency (Hz)')
+    ylabel('Admittance')
+    hold on
+    subplot(615);
+    title(sprintf('1-P, Station: %s',station))
+    xlabel('Frequency (Hz)')
+    ylabel('Admittance')
+    hold on
+    subplot(616);
+    title(sprintf('2-P, Station: %s',station))
+    xlabel('Frequency (Hz)')
+    ylabel('Admittance')
+    hold on
+    set(gcf,'PaperPositionMode','manual');
+    set(gcf,'PaperUnits','inches');
+    set(gcf,'PaperOrientation','portrait');
+    set(gcf,'PaperPosition',[.05 .05 8 10.5]);
+    filename=sprintf('%s/Admittance_%s',figoutpath,station);
+    print(gcf,'-dpng',filename)
+
+    % Calculate average spectra
+    czz_mean = mean(czz_all,1);
+    cpp_mean = mean(cpp_all,1);
+    c11_mean = mean(c11_all,1);
+    c22_mean = mean(c22_all,1);
+
+    czz_std = std(czz_all,1);
+    cpp_std = std(cpp_all,1);
+    c11_std = std(c11_all,1);
+    c22_std = std(c22_all,1);
+
+    czz_med = median(czz_all,1);
+    cpp_med = median(cpp_all,1);
+    c11_med = median(c11_all,1);
+    c22_med = median(c22_all,1);
+
+    % Calculate average coherence
+    coh1z_mean = mean(coh1z_all,1);
+    coh2z_mean = mean(coh2z_all,1);
+    cohpz_mean = mean(cohpz_all,1);
+    coh12_mean = mean(coh12_all,1);
+    coh1p_mean = mean(coh1p_all,1);
+    coh2p_mean = mean(coh2p_all,1);
+
+    coh1z_med = median(coh1z_all,1);
+    coh2z_med = median(coh2z_all,1);
+    cohpz_med = median(cohpz_all,1);
+    coh12_med = median(coh12_all,1);
+    coh1p_med = median(coh1p_all,1);
+    coh2p_med = median(coh2p_all,1);
+
+    coh1z_std = std(coh1z_all,1);
+    coh2z_std = std(coh2z_all,1);
+    cohpz_std = std(cohpz_all,1);
+    coh12_std = std(coh12_all,1);
+    coh1p_std = std(coh1p_all,1);
+    coh2p_std = std(coh2p_all,1);
+
+
+    save(ofile,'station','f','czz_mean','cpp_mean','c11_mean','c22_mean','czz_std','cpp_std','c11_std','c22_std','czz_med','cpp_med','c11_med','c22_med',...
+        'elev','freqcomp','coh1z_mean','coh2z_mean','cohpz_mean','coh12_mean','coh1p_mean','coh2p_mean','coh1z_med','coh2z_med','cohpz_med','coh12_med','coh1p_med','coh2p_med',...
+        'coh1z_std','coh2z_std','cohpz_std','coh12_std','coh1p_std','coh2p_std');
+
+
+    %% plot
+    if ifplot
+    plot_stav_spectra(ofile,ifsavefigs,[dbdir,'spectra/',sta])
+%         pause
+    end            
+            
+end % loop on stas

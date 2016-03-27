@@ -1,5 +1,6 @@
 function [IP,note] = which_OBS(sta)
 
+IP = [];
 note = [];
 
 whoi = {'G03A','G30A','J06A',...
@@ -73,6 +74,7 @@ switch sta
     case sio
         IP = 'SIO';
 end
+
 if any(strcmp(sta,trm))
     note = 'TRM';
 end

@@ -12,7 +12,7 @@ datawind = [-100 1700]; % time window in seconds after event to [start end]
 
 phases = 'P,S,PKS,SKS';
 
-overwrite = true;
+overwrite = false;
 
 resamprate = 5; % leave empty or zero to use existing samprate
 
@@ -46,7 +46,7 @@ dbsi = dblookup_table(db,'site');
 nstas = dbnrecs(dbsi);
 dbclose(db);
 
-for ie = 217:220 % 1:norids
+for ie = 220:220 % 1:norids
     % sort out event stuff
     orid = orids(ie);
     elat = elats(ie); elon = elons(ie); edep = edeps(ie); 
@@ -58,7 +58,7 @@ for ie = 217:220 % 1:norids
     
     % datinfo
     datinfofile = [datadir,evdir,'/_datinfo'];
-    if exist([datinfofile,'.mat'],'file')~=2
+    if exist([datinfofile,'.mat'],'file')~=2 || overwrite==true
         datinfo = struct('sta',[],'chans',[],'NEZ',false,'rmresp',false,'rmtilt',false,'rmcomp',false,'spectra',false);
     else
         load(datinfofile);
@@ -66,7 +66,7 @@ for ie = 217:220 % 1:norids
         
     
     fprintf('REQUESTING DATA FOR EVENT %.0f (%s)\n',orid,evdir)
-    for is = 1:nstas % 1:nstas
+    for is = 259:nstas % 1:nstas
         sta = stas{is};
         datafile = [datadir,evdir,'/',stas{is}];
         
@@ -174,7 +174,7 @@ for ie = 217:220 % 1:norids
         
         % data
         nsamps = length(tt);
-        dat = nan(nsamps,length(trace));
+        dat = zeros(nsamps,length(trace));
         for id = 1:length(trace)
         dat(:,id) = interp1(linspace(serial2epoch(trace(id).startTime),...
                                      serial2epoch(trace(id).endTime),...

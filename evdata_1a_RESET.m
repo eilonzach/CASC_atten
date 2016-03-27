@@ -19,7 +19,7 @@ dbor = dblookup_table(db,'origin');
 norids = dbnrecs(dbor);
 dbclose(db);
 
-for ie = 215:215 % 1:norids % loop on orids
+for ie = 222:222 % 1:norids % loop on orids
     fprintf('\n Orid %.0f %s \n\n',orids(ie),epoch2str(evtimes(ie),'%Y-%m-%d %H:%M:%S'))
     evdir    = [num2str(orids(ie),'%03d'),'_',epoch2str(evtimes(ie),'%Y%m%d%H%M'),'/'];
     datinfofile = [datadir,evdir,'_datinfo'];
@@ -32,7 +32,7 @@ for ie = 215:215 % 1:norids % loop on orids
     for is = 1:length(datinfo) % loop on stas
         sta = datinfo(is).sta; % sta name        
         load([datadir,evdir,sta,'.mat']); % load sta data for this evt
-        fprintf('Station %-5s...',sta)
+        fprintf('Station %.0f %-5s...',is,sta)
         data.dat    = data.raw.dat;
         
         % fix nans

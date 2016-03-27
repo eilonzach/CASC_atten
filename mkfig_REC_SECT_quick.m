@@ -1,9 +1,9 @@
 % quick and dirty script to make a record section for a given event
 clear all
-orid = 188;
+orid = 215;
 comp = 'Z';
 
-amp = 0.1;
+amp = 0.6;
 filtfs = [0.04 2]; % in hz
 
 % antelope db details
@@ -11,7 +11,7 @@ dbdir = '/Users/zeilon/Work/CASCADIA/CAdb/'; % needs final slash
 dbnam = 'cascBIGdb';
 
 % path to top level of directory tree for data
-datadir = '/Volumes/DATA/CASCADIA/DATA/'; % needs final slash
+datadir = '/Volumes/DATA_mini/CASCADIA/DATA/'; % needs final slash
 % datadir = '~/Work/CASCADIA/DATA/';
 
 
