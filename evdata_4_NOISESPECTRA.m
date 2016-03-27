@@ -14,16 +14,13 @@ Nwin = 10;    % N of time windows into which to chop the noise
 
 resamprate = 5; % NEW SAMPLE RATE TO DOWNSAMP TO
 
-fmin=0.005;fmax=0.02;
-coh_min=0.8;
-chorz_max=1;
-
 ifplot = 1; 
 ifsavefigs = 1;
 
 %% paths
+cd('/Users/zeilon/Documents/MATLAB/CASC_atten/')
 addpath('/Users/zeilon/Documents/MATLAB/helen_dataprocessing')
-addpath('../matguts')
+addpath('matguts')
 % path to sensor tilt data
 tiltdir = '~/Work/CASCADIA/CAdb/tilt_compliance/';
 % antelope db details
@@ -31,7 +28,6 @@ dbdir = '/Users/zeilon/Work/CASCADIA/CAdb/'; % needs final slash
 dbnam = 'cascBIGdb';
 % path to top level of directory tree for data
 datadir = '/Volumes/DATA_mini/CASCADIA/DATA/'; % needs final slash
-cd('/Users/zeilon/Documents/MATLAB/CASC_atten/')
 
 
 %% get to work
