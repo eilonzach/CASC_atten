@@ -1,0 +1,202 @@
+% for each event, cycle through data and build structures with all
+% necessary data for each arrival of interest. 
+clear all
+% close all
+addpath('matguts')
+
+%% parameters
+phase = 'S';
+resamprate = 40 ; % new, common sample rate
+wind = [-200 200]; % seconds before and after arrival to save data for this arrival
+
+
+%% directories 
+% ANTELOPE DB DETAILS
+dbdir = '/Users/zeilon/Work/CASCADIA/CAdb/'; % needs final slash
+dbnam = 'cascattendb';
+% DATA DIRECTORY (top level)
+datadir = '~/Work/CASCADIA/DATA/'; % needs final slash
+
+%% =================================================================== %%
+%% ==========================  GET TO WORK  ========================== %%
+%% =================================================================== %%
+
+% GET EVENTS DATA
+db = dbopen([dbdir,dbnam],'r');
+dbor = dblookup_table(db,'origin');
+[orids,elats,elons,edeps,evtimes,mags] = dbgetv(dbor,'orid','lat','lon','depth','time','ms');
+norids = dbnrecs(dbor);
+dbclose(db);
+
+for ie = 85:86 % 44:norids % loop on orids
+    fprintf('\n Orid %.0f %s \n\n',orids(ie),epoch2str(evtimes(ie),'%Y-%m-%d %H:%M:%S'))
+    evdir = [num2str(orids(ie),'%03d'),'_',epoch2str(evtimes(ie),'%Y%m%d%H%M'),'/'];
+    if ~exist([datadir,evdir,'_datinfo.mat'],'file'), fprintf('No station mat files for this event\n');continue, end
+    load([datadir,evdir,'_datinfo.mat'])
+    if isempty(datinfo), fprintf('No station mat files for this event\n');continue, end
+    nstas = length(datinfo);
+
+    ofile = [datadir,evdir,'EQAR_',phase];
+    
+    
+    % RESULTS STRUCTURE
+    eqar = struct('phase',phase,...
+                  'sta',{datinfo.sta}','slat',[],'slon',[],'selev',[],...
+                  'gcarc',[],'seaz',[],'rayp',[],'pred_arrT',[],...
+                  'tt',[],'datZ',[],'datR',[],'datT',[],'datH',[],'samprate',resamprate);
+
+    wlen = diff(wind)*resamprate; % window length in samples
+    
+    % LOOP ON STAS
+    for is = 1:nstas
+        fprintf('Station %-8s ',sprintf('%s...',datinfo(is).sta))
+        % APPLY DATA QUALITY CONDITIONS
+%         if datinfo(is).crap == 1; 
+%             fprintf('crap, skipping\n'),continue 
+%         end
+        if ~datinfo(is).rmresp
+            fprintf('must have response removed\n'), continue
+        end
+        
+        % GET STATION + ARRIVAL INFO
+        load([datadir,evdir,datinfo(is).sta,'.mat']); % load sta data for this evt
+        
+        if ~any(strcmp({data.phases.phase},phase))
+            fprintf('No %s arrival at this sta\n',phase), continue
+        end
+        
+        % station details
+        statmp = struct2cell(data.station);
+        [eqar(is).sta,eqar(is).slat,eqar(is).slon,eqar(is).selev] = deal(statmp{:});
+        
+        % station-event details
+        eqar(is).gcarc = data.gcarc;
+        eqar(is).seaz = data.seaz;
+
+        % arrival details
+        ip = strcmp({data.phases.phase},phase);
+        eqar(is).rayp = data.phases(ip).rayparameter;
+        eqar(is).pred_arrT = data.phases(ip).artime;
+        
+        
+        % GET DATA
+        tt = [data.phases(ip).artime + wind(1):1./resamprate:data.phases(ip).artime + wind(2)];
+        tt = tt(1:wlen);
+        eqar(is).tt = tt;
+        if any(strcmp(data.chans.component,'Z'))
+            eqar(is).datZ = interp1(data.tt,data.dat(:,strcmp(data.chans.component,'Z')),tt);
+        end
+        if any(strcmp(data.chans.component,'H'))
+            eqar(is).datH = interp1(data.tt,data.dat(:,strcmp(data.chans.component,'H')),tt);
+        end
+        
+        if ~datinfo(is).NEZ
+            fprintf('must be rotated\n'), continue
+        else
+            if data.chans.azimuth(strcmp(data.chans.component,'N')) ~=0, error('Bad instrument orientation\n'), end
+            datN = interp1(data.tt,data.dat(:,strcmp(data.chans.component,'N')),tt);
+            datE = interp1(data.tt,data.dat(:,strcmp(data.chans.component,'E')),tt);
+            
+            foraz = mod(data.seaz+180,360);
+            eqar(is).datR =  datN*sind(foraz) + datE*sind(foraz);
+            eqar(is).datT = -datN*sind(foraz) + datE*cosd(foraz);
+        end
+        fprintf('got data\n')    
+    end % loop on stas
+    return
+    
+    % MARK ZERO DATA TRACES
+    gd = 1:size(eqar);
+    for is = 1:length(gd)
+    indgd(mean(abs(all_datwf(:,indgd)))==0)     = []; % kill zero traces
+    indgd(isnan(mean(abs(all_datwf(:,indgd))))) = []; % kill nan traces
+    if length(indgd) < 2, fprintf('NO GOOD TRACES/ARRIVALS, skip...\n'), continue, end
+    
+    % ITERATIVELY XCOR and remove chans with low acor
+    fprintf('Cross-correlating + iteratively removing low acor traces\n')
+    acor = zeros(size(eqar));
+    
+    while any(acor < acormin)
+        % DO CROSS CORRELATION
+        [dcor,dcstd,dvcstd,acor]=xcortimes(all_datwf(:,indgd),1./resamprate,xcorwind(1),xcorlagmax,1);
+        % DELETE LOW ACOR CHANS
+        indgd(acor<acormin) = []; % kill low acor traces
+        if length(indgd) < 2, break, end
+    end
+	if length(indgd) < 2, fprintf('NO GOOD TRACES/ARRIVALS, skip...\n'), continue, end
+    
+	% DELETE NOT GOOD TRACES
+    eqar = eqar(indgd);
+    % STORE RESULTS
+    for is = 1:length(eqar)
+        eqar(is).dT       = dcor(is);
+        eqar(is).acor     = acor(is);
+        eqar(is).abs_arrT = eqar(is).pred_arrT + dcor(is);
+    end
+    pause(.1)
+
+    
+    % RECORD SECTION TO CHECK
+    figure(54), clf, set(gcf,'position',[10 600 1200 400]), hold on
+    normf = max(max(abs(all_datwf(:,indgd))));
+    for is = 1:length(indgd)
+        plot(ttws(1:wlen) ,all_datwf(:,indgd(is))/normf+all_gcarc(indgd(is)),'k')
+        plot(ttws(1:wlen)-eqar(is).dT ,all_datwf(:,indgd(is))/normf+all_gcarc(indgd(is)),'b','LineWidth',1.5)
+        text(ttws(end)+0.5,all_gcarc(indgd(is)),datinfo(indgd(is)).sta)
+    end
+	% STACK raw traces to get overall arrtime
+    stk = zeros(wlen,1);
+    for is = 1:length(indgd)
+        nshift = round(dcor(is)*resamprate);
+        % can only do this trick because padded with zeros
+        datstk = [zeros(-2*nshift,1);all_datwf(abs(nshift)+1:end-abs(nshift),indgd(is));zeros(2*nshift,1)];
+        stk = stk + datstk;
+    end
+    figure(54), hold on
+    axlim = axis;
+    plot(ttws(1:wlen),stk./max(abs(stk)) + axlim(3),'r','LineWidth',1.5)
+
+    % PICK phase arrival
+    axlim = axis;
+    conf = 0; hl = [];
+    while conf==0
+        title('PICK PHASE ARRIVAL TIME (CLICK OUTSIDE PLOT TO ABORT)','FontSize',18)
+        delete(hl);
+        t0 = ginput(1);
+        if t0(1) > axlim(2) || t0(1) < axlim(1)
+            error('Aborting xcorr on user request...')
+        else
+            hold on 
+            hl = plot([t0(1),t0(1)],[axlim(3),axlim(4)],'--k');
+            title('CLICK IN PLOT TO CONFIRM','FontSize',18)
+            pause(0.01)
+            conf = ginput(1);
+            if conf(1) > axlim(2) || conf(1) < axlim(1), conf = 0; end
+        end
+    end
+    % save into eq
+    temp = num2cell([eqar.abs_arrT] + t0(1));
+    [eqar.abs_arrT] = deal(temp{:});    
+    eqar(1).dt_filt_parms = cp;
+
+    hw = waitbar(0,'SAVING...');
+    % SAVE
+    save(ofile,'eqar')
+    % PUT BACK INTO DATINFO AND DATA structures
+    for is = 1:length(indgd)
+        load([datadir,evdir,datinfo(indgd(is)).sta,'.mat'])
+        ph = data.phases; ip = strcmp({ph.phase},phase);
+        ph(ip).xtime = ph(ip).time + eqar(is).dT;
+        ph(ip).xartime = eqar(is).abs_arrT;
+        ph(ip).xacor = eqar(is).acor;
+        data.phases = ph;
+        save([datadir,evdir,data.station.name],'data')
+        waitbar(is/length(indgd),hw)
+    end
+	[datinfo(indgd).xcor] = deal(true);
+    save([datadir,evdir,'_datinfo'],'datinfo')
+    delete(hw)
+    
+    toc  
+    
+end
