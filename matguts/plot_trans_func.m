@@ -8,102 +8,89 @@ for ii = 1:length(fs), eval(sprintf('%s = trans_func.%s;',fs{ii},fs{ii})); end
 pper = 1/16;
 sper = 1/8;
 
-figure(101), clf, set(gcf,'pos',[10 10 1200 790])
+figure(111), clf, set(gcf,'pos',[10 10 1200 790])
 
 switch method_trans_func
     case 1
-        subplot(611)
+        subplot(611), hold on
         loglog(f,smooth(abs(lpz_12),40),'b-');
+        loglog(f,smooth(abs(lpz_12_use),40),'g-');
         title([sta,' Transfer Function, lpz-12 ']);
-        hold on
         plot([pper pper],[min(abs(lpz_12))*10 max(abs(lpz_12))/10],'-b','LineWidth',2)
-        hold on
         plot([sper sper],[min(abs(lpz_12))*10 max(abs(lpz_12))/10],'r','LineWidth',2)
-        hold on
         plot([freqcomp freqcomp],[min(abs(lpz_12))*10 max(abs(lpz_12))/10],'-k')
-        hold on
-        subplot(612)
+        set(gca,'ylim',[min(abs(lpz_12))/2 max(abs(lpz_12))*2],'xscale','log','yscale','log')
+
+        subplot(612), hold on
         loglog(f,smooth(abs(l1z),40),'b-');
+        loglog(f,smooth(abs(l1z_use),40),'g-');
         title([sta,' Transfer Function, l1z ']);
-        hold on
         plot([pper pper],[min(abs(l1z))*10 max(abs(l1z))/10],'-b','LineWidth',2)
-        hold on
         plot([sper sper],[min(abs(l1z))*10 max(abs(l1z))/10],'r','LineWidth',2)
-        hold on
         plot([freqcomp freqcomp],[min(abs(l1z))*10 max(abs(l1z))/10],'-k')
-        hold on
-        subplot(613)
+        set(gca,'ylim',[min(abs(l1z))/2 max(abs(l1z))*2],'xscale','log','yscale','log')
+
+        subplot(613), hold on
         loglog(f,smooth(abs(l2z_1),40),'b-');
+        loglog(f,smooth(abs(l2z_1_use),40),'g-');
         title([sta,' Transfer Function, l2z-1 ']);
-        hold on
         plot([pper pper],[min(abs(l2z_1))*10 max(abs(l2z_1))/10],'-b','LineWidth',2)
-        hold on
         plot([sper sper],[min(abs(l2z_1))*10 max(abs(l2z_1))/10],'r','LineWidth',2)
-        hold on
         plot([freqcomp freqcomp],[min(abs(l2z_1))*10 max(abs(l2z_1))/10],'-k')
-        hold on
-        subplot(614)
+        set(gca,'ylim',[min(abs(l2z_1))/2 max(abs(l2z_1))*2],'xscale','log','yscale','log')
+
+        subplot(614), hold on
         loglog(f,smooth(abs(l12),40),'b-');
+        loglog(f,smooth(abs(l12_use),40),'g-');
         title([sta,' Transfer Function, l12 ']);
-        hold on
         plot([pper pper],[min(abs(l12))*10 max(abs(l12))/10],'-b','LineWidth',2)
-        hold on
         plot([sper sper],[min(abs(l12))*10 max(abs(l12))/10],'r','LineWidth',2)
-        hold on
         plot([freqcomp freqcomp],[min(abs(l12))*10 max(abs(l12))/10],'-k')
-        hold on
-        subplot(615)
+        set(gca,'ylim',[min(abs(l12))/2 max(abs(l12))*2],'xscale','log','yscale','log')
+
+        subplot(615), hold on
         loglog(f,smooth(abs(l1p),40),'b-');
+        loglog(f,smooth(abs(l1p_use),40),'g-');
         title([sta,' Transfer Function, l1p ']);
-        hold on
         plot([pper pper],[min(abs(l1p))*10 max(abs(l1p))/10],'-b','LineWidth',2)
-        hold on
         plot([sper sper],[min(abs(l1p))*10 max(abs(l1p))/10],'r','LineWidth',2)
-        hold on
         plot([freqcomp freqcomp],[min(abs(l1p))*10 max(abs(l1p))/10],'-k')
-        hold on
-        subplot(616)
+        set(gca,'ylim',[min(abs(l1p))/2 max(abs(l1p))*2],'xscale','log','yscale','log')
+
+        subplot(616), hold on
         loglog(f,smooth(abs(l2p_1),40),'b-');
+        loglog(f,smooth(abs(l2p_1_use),40),'g-');
         title([sta,' Transfer Function, l2p-1 ']);
-        hold on
         plot([pper pper],[min(abs(l2p_1))*10 max(abs(l2p_1))/10],'-b','LineWidth',2)
-        hold on
         plot([sper sper],[min(abs(l2p_1))*10 max(abs(l2p_1))/10],'r','LineWidth',2)
-        hold on
         plot([freqcomp freqcomp],[min(abs(l2p_1))*10 max(abs(l2p_1))/10],'-k')
-        hold on
+        set(gca,'ylim',[min(abs(l2p_1))/2 max(abs(l2p_1))*2],'xscale','log','yscale','log')
         
     case 2 
-        subplot(311)
+        subplot(311), hold on
         loglog(f,smooth(abs(lpz),40),'b-');
+        loglog(f,smooth(abs(lpz_use),40),'g-');
         title([sta,' Transfer Function, lpz ']);
-        hold on
         plot([pper pper],[min(abs(lpz))*10 max(abs(lpz))/10],'-b','LineWidth',2)
-        hold on
         plot([sper sper],[min(abs(lpz))*10 max(abs(lpz))/10],'r','LineWidth',2)
-        hold on
         plot([freqcomp freqcomp],[min(abs(lpz))*10 max(abs(lpz))/10],'-k')
-        hold on
-        subplot(312)
+        set(gca,'ylim',[min(abs(lpz))/2 max(abs(lpz))*2],'xscale','log','yscale','log')
+
+        subplot(312), hold on
         loglog(f,smooth(abs(lp1),40),'b-');
-        title([sta,' Transfer Function, lp1 ']);
-        hold on
+        title([sta,' Transfer Function, lp1 ']);    
         plot([pper pper],[min(abs(lp1))*10 max(abs(lp1))/10],'-b','LineWidth',2)
-        hold on
         plot([sper sper],[min(abs(lp1))*10 max(abs(lp1))/10],'r','LineWidth',2)
-        hold on
         plot([freqcomp freqcomp],[min(abs(lp1))*10 max(abs(lp1))/10],'-k')
-        hold on
-        subplot(313)
+        set(gca,'ylim',[min(abs(lp1))/2 max(abs(lp1))*2],'xscale','log','yscale','log')
+
+        subplot(313), hold on
         loglog(f,smooth(abs(lp2),40),'b-');
         title([sta,' Transfer Function, lp2 ']);
-        hold on
         plot([pper pper],[min(abs(lp2))*10 max(abs(lp2))/10],'-b','LineWidth',2)
-        hold on
         plot([sper sper],[min(abs(lp2))*10 max(abs(lp2))/10],'r','LineWidth',2)
-        hold on
         plot([freqcomp freqcomp],[min(abs(lp2))*10 max(abs(lp2))/10],'-k')
-        hold on
+        set(gca,'ylim',[min(abs(lp2))/2 max(abs(lp2))*2],'xscale','log','yscale','log')
     
     case 3
         subplot(611)

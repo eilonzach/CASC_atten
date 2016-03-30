@@ -24,7 +24,7 @@ dbdir = '/Users/zeilon/Work/CASCADIA/CAdb/'; % needs final slash
 dbnam = 'cascBIGdb';
 
 % path to top level of directory tree for data
-datadir = '/Volumes/DATA_mini/CASCADIA/DATA/'; % needs final slash
+datadir = '/Volumes/DATA_mini2/CASCADIA/DATA/'; % needs final slash
 % datadir = '~/Work/CASCADIA/DATA/';
 
 javaaddpath('/Users/zeilon/Documents/MATLAB/IRIS-WS-2.0.15.jar')
@@ -46,7 +46,7 @@ dbsi = dblookup_table(db,'site');
 nstas = dbnrecs(dbsi);
 dbclose(db);
 
-for ie = 220:220 % 1:norids
+for ie = 221:221 % 1:norids
     % sort out event stuff
     orid = orids(ie);
     elat = elats(ie); elon = elons(ie); edep = edeps(ie); 
@@ -66,7 +66,7 @@ for ie = 220:220 % 1:norids
         
     
     fprintf('REQUESTING DATA FOR EVENT %.0f (%s)\n',orid,evdir)
-    for is = 259:nstas % 1:nstas
+    for is = 1:nstas % 1:nstas
         sta = stas{is};
         datafile = [datadir,evdir,'/',stas{is}];
         

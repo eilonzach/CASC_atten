@@ -29,7 +29,7 @@ datadir = '/Volumes/DATA_mini/CASCADIA/DATA/'; % needs final slash
 [ norids,orids,elats,elons,edeps,evtimes,mags ]  = db_oriddata( dbdir,dbnam ); % load events data
 [ nstas,stas,slats,slons,selevs,ondate,offdate,staname,statype ] = db_stadata( dbdir,dbnam ); %load stations data
 
-for is = 121:nstas % loop on stas
+for is = 1:nstas % loop on stas
     sta = stas{is}; % sta name
    	if strcmp(statype(is),'OBS') ~= 1, continue, end % skip if not an OBS
 	

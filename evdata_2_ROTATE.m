@@ -12,7 +12,7 @@ dbdir = '/Users/zeilon/Work/CASCADIA/CAdb/'; % needs final slash
 dbnam = 'cascBIGdb';
 
 % path to top level of directory tree for data
-datadir = '/VOLUMES/DATA_mini/CASCADIA/DATA/'; % needs final slash
+datadir = '/VOLUMES/DATA_mini2/CASCADIA/DATA/'; % needs final slash
 
 %% get to work
 
@@ -24,7 +24,7 @@ dbor = dblookup_table(db,'origin');
 norids = dbnrecs(dbor);
 dbclose(db);
 
-for ie = 222:222 % 1:norids % loop on orids
+for ie = 1:269 % 1:norids % loop on orids
     fprintf('\n Orid %.0f %s \n\n',orids(ie),epoch2str(evtimes(ie),'%Y-%m-%d %H:%M:%S'))
     evdir = [num2str(orids(ie),'%03d'),'_',epoch2str(evtimes(ie),'%Y%m%d%H%M'),'/'];
     datinfofile = [datadir,evdir,'_datinfo'];
@@ -39,6 +39,9 @@ for ie = 222:222 % 1:norids % loop on orids
         sta = datinfo(is).sta; % sta name
         fprintf('Station %.0f %s...',is,sta)
         load([datadir,evdir,sta,'.mat']); % load sta data for this evt
+        
+        % fix if datinfo chans not edited while data has been.
+        if any(strcmp(data.chans.component,'E')) & any(strcmp(data.chans.component,'N')) & data.NEZ & ~datinfo(is).NEZ, datinfo(is).chans = data.chans.component; end
         
         yesE = any(strcmp(datinfo(is).chans,'E'));
         yesN = any(strcmp(datinfo(is).chans,'N'));

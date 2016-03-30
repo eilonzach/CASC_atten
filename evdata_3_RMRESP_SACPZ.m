@@ -15,7 +15,7 @@ dbdir = '/Users/zeilon/Work/CASCADIA/CAdb/'; % needs final slash
 dbnam = 'cascBIGdb';
 
 % path to top level of directory tree for data
-datadir = '/Volumes/DATA_mini/CASCADIA/DATA/'; % needs final slash
+datadir = '/Volumes/DATA_mini2/CASCADIA/DATA/'; % needs final slash
 
 %% get to work
 
@@ -27,7 +27,7 @@ dbor = dblookup_table(db,'origin');
 norids = dbnrecs(dbor);
 dbclose(db);
 
-for ie = 222:222 % 1:norids % loop on orids
+for ie = 1:269 % 1:norids % loop on orids
     fprintf('\n Orid %.0f %s \n\n',orids(ie),epoch2str(evtimes(ie),'%Y-%m-%d %H:%M:%S'))
     evdir = [num2str(orids(ie),'%03d'),'_',epoch2str(evtimes(ie),'%Y%m%d%H%M'),'/'];
     evday = epoch2str(evtimes(ie),'%Y%j');

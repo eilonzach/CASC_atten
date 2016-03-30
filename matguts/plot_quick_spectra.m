@@ -1,10 +1,17 @@
-function [ ofile ] = plot_quick_spectra( Zraw,H1raw,H2raw,Praw,tt,Nwin,ifsave )
-%PLOT_SPECTRA Summary of this function goes here
-%   Detailed explanation goes here
+function [ ofile ] = plot_quick_spectra( Zraw,H1raw,H2raw,Praw,tt,Nwin,goodwin,ifsave )
+% [ ofile ] = plot_quick_spectra( Zraw,H1raw,H2raw,Praw,tt,Nwin,goodwin,ifsave )
+% 
+% quick script to plot data or noise spectra over a number of windows:
+% splits the data up into Nwin windows. Only keeps & plots the good
+% windows (by default, all windows are 'good')
+% 
 % cribbed from script by H. Janiszewski
 % adapted by Z. Eilon 03/2016
 
 if nargin<7
+    goodwin = [1:Nwin];
+end
+if nargin<8
     ifsave = 0;
 end
 
@@ -14,12 +21,23 @@ dt = tt(2)-tt(1);
 samprate = 1./dt;
 npts = length(tt);
 overlap = ceil((length(tt)*Nwin - length(Zraw))/(Nwin - 1));
+taperf = overlap/npts;
 
 %% compute spectra
-[spect_Z,FZ,TZ] = spectrogram(Zraw,flat_hanning(tt,0.1*dt*npts),overlap,npts,samprate,'yaxis');
-[spect_1,F1,T1] = spectrogram(H1raw,flat_hanning(tt,0.1*dt*npts),overlap,npts,samprate,'yaxis');
-[spect_2,F2,T2] = spectrogram(H2raw,flat_hanning(tt,0.1*dt*npts),overlap,npts,samprate,'yaxis');
-[spect_P,FP,TP] = spectrogram(Praw,flat_hanning(tt,0.1*dt*npts),overlap,npts,samprate,'yaxis');
+[spect_Z,FZ,TZ] = spectrogram(Zraw,flat_hanning(tt,taperf*dt*npts),overlap,npts,samprate,'yaxis');
+[spect_1,F1,T1] = spectrogram(H1raw,flat_hanning(tt,taperf*dt*npts),overlap,npts,samprate,'yaxis');
+[spect_2,F2,T2] = spectrogram(H2raw,flat_hanning(tt,taperf*dt*npts),overlap,npts,samprate,'yaxis');
+[spect_P,FP,TP] = spectrogram(Praw,flat_hanning(tt,taperf*dt*npts),overlap,npts,samprate,'yaxis');
+
+spect_Z = spect_Z(:,goodwin);
+spect_1 = spect_1(:,goodwin);
+spect_2 = spect_2(:,goodwin);
+spect_P = spect_P(:,goodwin);
+
+TZ = TZ(goodwin);
+T1 = T1(goodwin);
+T2 = T2(goodwin);
+TP = TP(goodwin);
 
 
 %% normalise

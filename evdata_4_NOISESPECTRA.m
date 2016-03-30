@@ -5,7 +5,7 @@
 % outputs into structures within the data directories
 clear all
 
-overwrite = true;
+overwrite = false;
 
 % day info to calculate tilt and compliance
 noisewind = 43200;     % length of noise window before event time (sec).
@@ -14,8 +14,10 @@ Nwin = 10;    % N of time windows into which to chop the noise
 
 resamprate = 5; % NEW SAMPLE RATE TO DOWNSAMP TO
 
+ifQC = 1;
 ifplot = 1; 
 ifsavefigs = 1;
+
 
 %% paths
 cd('/Users/zeilon/Documents/MATLAB/CASC_atten/')
@@ -27,7 +29,7 @@ tiltdir = '~/Work/CASCADIA/CAdb/tilt_compliance/';
 dbdir = '/Users/zeilon/Work/CASCADIA/CAdb/'; % needs final slash
 dbnam = 'cascBIGdb';
 % path to top level of directory tree for data
-datadir = '/Volumes/DATA_mini/CASCADIA/DATA/'; % needs final slash
+datadir = '/Volumes/DATA_mini2/CASCADIA/DATA/'; % needs final slash
 
 
 %% get to work
@@ -35,14 +37,14 @@ if ~(T > noisewind/Nwin), error('Make T larger so there is overlap between windo
 [ norids,orids,elats,elons,edeps,evtimes,mags ]  = db_oriddata( dbdir,dbnam ); % load events data
 [ nstas,stas,slats,slons,selevs,ondate,offdate,staname,statype ] = db_stadata( dbdir,dbnam ); %load stations data
 
-for ie = 220:220 % 1:norids % loop on orids
+for ie = 1:269 % 1:norids % loop on orids
     fprintf('\n Orid %.0f %s \n\n',orids(ie),epoch2str(evtimes(ie),'%Y-%m-%d %H:%M:%S'))
     evdir = [num2str(orids(ie),'%03d'),'_',epoch2str(evtimes(ie),'%Y%m%d%H%M'),'/'];
     evday = epoch2str(evtimes(ie),'%Y%j');
     datinfofile = [datadir,evdir,'_datinfo'];
            
-    if any((evtimes(ie)-evtimes)>0 & (evtimes(ie)-evtimes) < 24*60*60)
-        fprintf('Another event within prev 24 hrs... skipping\n')
+    if any((evtimes(ie)-evtimes)>0 & (evtimes(ie)-evtimes) < 20*60*60)
+        fprintf('Another event within prev 20 hrs... skipping\n')
         continue
     end
 
@@ -58,7 +60,7 @@ for ie = 220:220 % 1:norids % loop on orids
         ofile = [datadir,evdir,sta,'_spectra.mat'];
         datfile = [datadir,evdir,sta,'.mat'];
         
-        fprintf('Station %.0f, %-5s...',is,sta)
+        fprintf('Station %.0f, %s...',is,sta)
         
         %% load data, be v. careful about overwriting etc., w/ redundancy built in
         % conditions before even loading - only do if response removed
@@ -80,7 +82,7 @@ for ie = 220:220 % 1:norids % loop on orids
         
         % outfile + check if already exists
         if exist(ofile,'file')==2
-            fprintf(' spectra file exists... ')
+            fprintf(' specfile exists... ')
             if overwrite == false, fprintf('skipping...\n'),continue
             else fprintf('overwriting... '), delete(ofile); end
         end
@@ -100,8 +102,6 @@ for ie = 220:220 % 1:norids % loop on orids
             continue, 
         end 
 
-        
-        
         %% Get data, reseamp
         inds = noisewind*data.samprate;
         
@@ -131,7 +131,20 @@ for ie = 220:220 % 1:norids % loop on orids
         %% plot the spectra of the whole thing
         if ifplot
         [ whole_spectra_fig ] = plot_quick_spectra( noiseZ,noiseH1,noiseH2,noiseP,tt(1:T*resamprate),Nwin);
-%         pause
+        pause(.1)
+        end 
+
+        %% QC the noise windows
+        if ifQC
+            fprintf('QC wins... ')
+            [ goodwins ] = QC_staspectra_windows( noiseZ,noiseH1,noiseH2,noiseP,tt(1:T*resamprate),Nwin,1);
+            fprintf('killed %.0f... ',Nwin-length(goodwins))
+            if ifplot && (Nwin-length(goodwins) > 0)
+                plot_quick_spectra( noiseZ,noiseH1,noiseH2,noiseP,tt(1:T*resamprate),Nwin,goodwins);
+                pause(.1)
+            end
+        else
+            goodwins = 1:Nwin;
         end
         
         %% calc some basics
@@ -146,6 +159,7 @@ for ie = 220:220 % 1:norids % loop on orids
         win_t0 = round(linspace(1,noisewind-T+1,Nwin));
         win_pt_start = (win_t0-1)*samprate+1;
         win_pt_end = win_pt_start+npts-1;
+        taperf = (win_pt_end(1)-win_pt_start(2))/npts;
 
         %% scales for seismometer and pressure chans...?
         scalez = 1;
@@ -189,15 +203,17 @@ for ie = 220:220 % 1:norids % loop on orids
         Q2p_stack = zeros(length(f),1);
 
         Nwin_stack = 0;
-        
         %% loop over windows
         for iwin = 1:Nwin % Window index
+            if ~ismember(goodwins,iwin) % 
+                continue
+            end
             j1 = win_pt_start(iwin);
             j2 = win_pt_end(iwin);
 
        
             amp_Z  = noiseZ(j1:j2);
-            amp_Z  = amp_Z.*flat_hanning(tt(j1:j2),0.1*dt*npts);
+            amp_Z  = amp_Z.*flat_hanning(tt(j1:j2),taperf*dt*npts);
             amp_Z  = detrend(amp_Z,0);
             amp_Z  = padarray(amp_Z,[npad0 0],'both');
             spectrum = fft(amp_Z,NFFT).*dt;
@@ -207,7 +223,7 @@ for ie = 220:220 % 1:norids % loop on orids
             cspectrum_Z(iwin,1:length(f)) = cspec_Z;
 
             amp_H1  = noiseH1(j1:j2);
-            amp_H1  = amp_H1.*flat_hanning(tt(j1:j2),0.1*dt*npts);
+            amp_H1  = amp_H1.*flat_hanning(tt(j1:j2),taperf*dt*npts);
             amp_H1  = detrend(amp_H1,0);
             amp_H1  = padarray(amp_H1,[npad0 0],'both');
             spectrum = fft(amp_H1,NFFT).*dt;
@@ -217,7 +233,7 @@ for ie = 220:220 % 1:norids % loop on orids
             cspectrum_H1(iwin,1:length(f)) = cspec_H1;
 
             amp_H2  = noiseH2(j1:j2);
-            amp_H2  = amp_H2.*flat_hanning(tt(j1:j2),0.1*dt*npts);
+            amp_H2  = amp_H2.*flat_hanning(tt(j1:j2),taperf*dt*npts);
             amp_H2  = detrend(amp_H2,0);
             amp_H2  = padarray(amp_H2,[npad0 0],'both');
             spectrum = fft(amp_H2,NFFT).*dt;
@@ -227,7 +243,7 @@ for ie = 220:220 % 1:norids % loop on orids
             cspectrum_H2(iwin,1:length(f)) = cspec_H2;
 
             amp_P  = noiseP(j1:j2);
-            amp_P  = amp_P.*flat_hanning(tt(j1:j2),0.1*dt*npts);
+            amp_P  = amp_P.*flat_hanning(tt(j1:j2),taperf*dt*npts);
             amp_P  = detrend(amp_P,0);
             amp_P  = padarray(amp_P,[npad0 0],'both');
             spectrum = fft(amp_P,NFFT).*dt;
@@ -299,6 +315,18 @@ for ie = 220:220 % 1:norids % loop on orids
             vec_win(iwin)=1;
             %         end
         end
+        
+        % delete bad windows
+        spectrum_Z = spectrum_Z(goodwins,:);
+        spectrum_H1=spectrum_H1(goodwins,:);
+        spectrum_H2=spectrum_H2(goodwins,:);
+        spectrum_P = spectrum_P(goodwins,:);
+        cspectrum_Z = cspectrum_Z(goodwins,:);
+        cspectrum_H1=cspectrum_H1(goodwins,:);
+        cspectrum_H2=cspectrum_H2(goodwins,:);
+        cspectrum_P = cspectrum_P(goodwins,:);
+        win_pt_start = win_pt_start(goodwins);
+        win_pt_end = win_pt_end(goodwins);
 
         %% stack over the windows
         %Normalization
@@ -358,7 +386,7 @@ for ie = 220:220 % 1:norids % loop on orids
 
 
         %% SAVE
-        save(ofile,'sta','evdir','f','tt','dt','NFFT','win_pt_start','win_pt_end',...
+        save(ofile,'sta','evdir','f','tt','dt','NFFT','win_pt_start','win_pt_end','taperf','goodwins',...
             'c11_stack','c22_stack','czz_stack','cpp_stack',...
             'c12_stack','c1z_stack','c2z_stack','c1p_stack','c2p_stack','cpz_stack',...
             'C12_stack','C1z_stack','C2z_stack','C1p_stack','C2p_stack','Cpz_stack',...
@@ -380,7 +408,6 @@ for ie = 220:220 % 1:norids % loop on orids
 
         datinfo(is).spectra = true;
         save(datinfofile,'datinfo')
-                    
     end % loop on stas
 
 	%% sum up

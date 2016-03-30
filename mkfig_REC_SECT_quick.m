@@ -1,6 +1,6 @@
 % quick and dirty script to make a record section for a given event
 clear all
-orid = 215;
+orid = 219;
 comp = 'Z';
 
 amp = 0.6;
@@ -19,9 +19,9 @@ datadir = '/Volumes/DATA_mini/CASCADIA/DATA/'; % needs final slash
 db = dbopen([dbdir,dbnam],'r');
 dbor = dblookup_table(db,'origin');
 dbors = dbsubset(dbor,sprintf('orid == %.0f',orid));
-[orids,elats,elons,edeps,evtimes,mag] = dbgetv(dbors,'orid','lat','lon','depth','time','ms');
+[orid,elat,elon,edep,evtime,mag] = dbgetv(dbors,'orid','lat','lon','depth','time','ms');
 dbclose(db);
-evdir = [num2str(orids,'%03d'),'_',epoch2str(evtimes,'%Y%m%d%H%M'),'/'];
+evdir = [num2str(orid,'%03d'),'_',epoch2str(evtime,'%Y%m%d%H%M'),'/'];
 datinfofile = [datadir,evdir,'_datinfo.mat'];
     
 % prep file download info
@@ -51,6 +51,15 @@ for is = 1:nstas;%nstas
         if strcmp(comp,'T'), dat = datT; end
     end
     
+    tt = data.tt;
+    
+    if strcmp(comp,'Zcor') 
+        if ~isfield(data,'noise_cor'), continue, end
+        if isempty(data.noise_cor), continue, end
+        dat = data.noise_cor.Zdat;
+        tt = data.noise_cor.tt + evtime;
+    end
+    
     % bit of cleaning
     dat = detrend(dat);
     
@@ -60,21 +69,21 @@ for is = 1:nstas;%nstas
     
     dat = dat/abs(max(dat));
     
-    text(data.tt(1)-evtimes-1,data.gcarc,data.station.name,'horizontalalignment','left')
-    plot(data.tt-evtimes,amp*dat+data.gcarc)
+    text(tt(1)-evtime-1,data.gcarc,data.station.name,'horizontalalignment','left')
+    plot(tt-evtime,amp*dat+data.gcarc)
     
-%     if strcmp(data.station.name,'SAO'), plot(data.tt-evtimes,amp*dat+data.gcarc,'g','LineWidth',2), end
-%     if strcmp(data.station.name,'BKS'), plot(data.tt-evtimes,amp*dat+data.gcarc,'g','LineWidth',2), end
-%     if strcmp(data.station.name,'BOZ'), plot(data.tt-evtimes,amp*dat+data.gcarc,'g','LineWidth',2), end
-%     if strcmp(data.station.name,'J35C'), plot(data.tt-evtimes,amp*dat+data.gcarc,'g','LineWidth',2), end
-%     if strcmp(data.station.name,'J43C'), plot(data.tt-evtimes,amp*dat+data.gcarc,'g','LineWidth',2), end
-%     if strcmp(data.station.name,'J44C'), plot(data.tt-evtimes,amp*dat+data.gcarc,'g','LineWidth',2), end
-    if strcmp(data.station.name,'BOZ'), plot(data.tt-evtimes,amp*dat+data.gcarc,'g','LineWidth',2), end
-    if strcmp(data.station.name,'BB330'), plot(data.tt-evtimes,amp*dat+data.gcarc,'g','LineWidth',2), end
-    if strcmp(data.station.name,'BB330'), plot(data.tt-evtimes,amp*dat+data.gcarc,'g','LineWidth',2), end
-    if strcmp(data.station.name,'BB130'), plot(data.tt-evtimes,amp*dat+data.gcarc,'g','LineWidth',2), end
-    if strcmp(data.station.name,'BB350'), plot(data.tt-evtimes,amp*dat+data.gcarc,'g','LineWidth',2), end
-    if strcmp(data.station.name,'BB480'), plot(data.tt-evtimes,amp*dat+data.gcarc,'g','LineWidth',2), end
+%     if strcmp(data.station.name,'SAO'), plot(tt-evtimes,amp*dat+data.gcarc,'g','LineWidth',2), end
+%     if strcmp(data.station.name,'BKS'), plot(tt-evtimes,amp*dat+data.gcarc,'g','LineWidth',2), end
+%     if strcmp(data.station.name,'BOZ'), plot(tt-evtimes,amp*dat+data.gcarc,'g','LineWidth',2), end
+%     if strcmp(data.station.name,'J35C'), plot(tt-evtimes,amp*dat+data.gcarc,'g','LineWidth',2), end
+%     if strcmp(data.station.name,'J43C'), plot(tt-evtimes,amp*dat+data.gcarc,'g','LineWidth',2), end
+%     if strcmp(data.station.name,'J44C'), plot(tt-evtimes,amp*dat+data.gcarc,'g','LineWidth',2), end
+    if strcmp(data.station.name,'J63C'), plot(tt-evtime,amp*dat+data.gcarc,'g','LineWidth',2), end
+    if strcmp(data.station.name,'J48C'), plot(tt-evtime,amp*dat+data.gcarc,'g','LineWidth',2), end
+    if strcmp(data.station.name,'BB330'), plot(tt-evtime,amp*dat+data.gcarc,'g','LineWidth',2), end
+    if strcmp(data.station.name,'BB130'), plot(tt-evtime,amp*dat+data.gcarc,'g','LineWidth',2), end
+    if strcmp(data.station.name,'BB350'), plot(tt-evtime,amp*dat+data.gcarc,'g','LineWidth',2), end
+    if strcmp(data.station.name,'BB480'), plot(tt-evtime,amp*dat+data.gcarc,'g','LineWidth',2), end
     
     for ip = 1:length(data.phases), plot(data.phases(ip).time,data.gcarc,'.g','MarkerSize',20); end
 end
@@ -85,7 +94,7 @@ phs = {'P','PP','Pdiff','S','SS','Sdiff','PKS','SKS','PS'};
 predar = nan(length(gcs),length(phs)); 
 for ig = 1:length(gcs)
 for ip = 1:length(phs)
-TT = tauptime('depth',edeps,'phases',phs{ip},'deg',gcs(ig));
+TT = tauptime('depth',edep,'phases',phs{ip},'deg',gcs(ig));
 if isempty(TT), continue; end 
 predar(ig,ip) = TT.time;
 end

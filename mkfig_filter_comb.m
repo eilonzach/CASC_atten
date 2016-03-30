@@ -1,5 +1,6 @@
 clear all
 close all
+
 Tmin = 1;
 Tmax = 20;
 Nwds = 25;
@@ -7,6 +8,7 @@ Tw_opt = 'scale';
 npol = 4;
 dt = 1./40;
 
+ifsave = 0;
 
 %% prepare filter + cleaning parms
 % Make set of period windows for bandpass filter
@@ -30,4 +32,6 @@ set(gcf,'pos',[360   212   991   493])
 % set(gca,'xscale','log','xlim',[1./40, 1.5])
 
 %% save it
-save2pdf(33,'filter_comb','/Users/zeilon/Work/Posters/AGU_2015/figures/')
+if ifsave
+    save2pdf(33,'filter_comb','/Users/zeilon/Work/Posters/AGU_2015/figures/')
+end

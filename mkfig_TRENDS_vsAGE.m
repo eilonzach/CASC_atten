@@ -12,7 +12,7 @@ addpath('matguts')
 
 %% parameters
 ifsave = 0;
-ifOBSonly = true;
+ifOBSonly = false;
 ifpreds = 0;
 method = 'comb';% 'comb' or 'specR'
 tstlim = 1.*[-1.0 0.5];

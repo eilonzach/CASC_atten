@@ -7,7 +7,7 @@ addpath('matguts')
 %% parameters
 overwrite = true;
 phase = 'P';
-resamprate = 40 ; % new, common sample rate
+resamprate = 5 ; % new, common sample rate
 wind = [-200 200]; % seconds before and after arrival to save data for this arrival
 
 
@@ -16,7 +16,7 @@ wind = [-200 200]; % seconds before and after arrival to save data for this arri
 dbdir = '/Users/zeilon/Work/CASCADIA/CAdb/'; % needs final slash
 dbnam = 'cascBIGdb';
 % DATA DIRECTORY (top level)
-datadir = '/Volumes/DATA/CASCADIA/DATA/'; % needs final slash
+datadir = '/Volumes/DATA_mini/CASCADIA/DATA/'; % needs final slash
 
 %% =================================================================== %%
 %% ==========================  GET TO WORK  ========================== %%
@@ -29,7 +29,7 @@ dbor = dblookup_table(db,'origin');
 norids = dbnrecs(dbor);
 dbclose(db);
 
-for ie = 215:215 % 44:norids % loop on orids
+for ie = 215:220 % 44:norids % loop on orids
     fprintf('\n Orid %.0f %s \n\n',orids(ie),epoch2str(evtimes(ie),'%Y-%m-%d %H:%M:%S'))
     evdir = [num2str(orids(ie),'%03d'),'_',epoch2str(evtimes(ie),'%Y%m%d%H%M'),'/'];
     if ~exist([datadir,evdir,'_datinfo.mat'],'file'), fprintf('No data at all for this event\n'), continue, end
@@ -59,7 +59,7 @@ for ie = 215:215 % 44:norids % loop on orids
     eqar = struct('phase',phase,...
                   'sta',{datinfo.sta}','slat',[],'slon',[],'selev',[],...
                   'gcarc',0,'seaz',0,'rayp',0,'pred_arrT',0,...
-                  'tt',[],'datZ',[],'datR',[],'datT',[],'datH',[],'samprate',resamprate);
+                  'tt',[],'datZ',[],'datR',[],'datT',[],'datH',[],'corZ',[],'samprate',resamprate);
 
     wlen = diff(wind)*resamprate; % window length in samples
     
@@ -94,7 +94,11 @@ for ie = 215:215 % 44:norids % loop on orids
         eqar(is).rayp = data.phases(ip).rayparameter;
         eqar(is).pred_arrT = data.phases(ip).artime;
         
-        
+        % check resampling
+        if resamprate>data.samprate
+            error('resamprate would alias data - use smaller resamprate')
+        end
+            
         % GET DATA
         tt = [data.phases(ip).artime + wind(1):1./resamprate:data.phases(ip).artime + wind(2)];
         tt = tt(1:wlen);
@@ -117,6 +121,14 @@ for ie = 215:215 % 44:norids % loop on orids
             eqar(is).datR =  datN*sind(foraz) + datE*sind(foraz);
             eqar(is).datT = -datN*sind(foraz) + datE*cosd(foraz);
         end
+        
+        % GET NOISE DATA IF IT EXISTS
+        if data.rmtilt || data.rmcomp
+            if data.noise_cor.tt(1)==-100, data.noise_cor.tt = data.noise_cor.tt+evtimes(ie); end % correct if in event rather than absolute time ref frame
+            eqar(is).corZ = interp1(data.noise_cor.tt,data.noise_cor.Zdat,tt);
+            if any(isnan(eqar(is).corZ)), error('Bad interp?!'); end
+        end
+        
         fprintf('got data\n')    
     end % loop on stas
 

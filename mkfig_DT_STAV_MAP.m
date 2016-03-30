@@ -9,7 +9,7 @@ ifsave = 1;
 
 method = 'xcorr';% 'comb' or 'xcorr' 
 
-ifOBSonly = true;
+ifOBSonly = false;
 
 plotsize = 800;
 scale = 100; % length of lines
@@ -25,7 +25,7 @@ keysiz = [1.4,1.9];
 dbdir = '/Users/zeilon/Work/CASCADIA/CAdb/'; % needs final slash
 dbnam = 'cascBIGdb';
 % DATA DIRECTORY (top level)
-datadir = '/Volumes/DATA/CASCADIA/DATA/'; % needs final slash
+datadir = '/Volumes/DATA_mini/CASCADIA/DATA/'; % needs final slash
 % RESULTS DIRECTORY
 resdir = '~/Documents/MATLAB/CASC_atten/results/'; % needs final slash
 addpath('~/Documents/MATLAB/seizmo-master/cmap/');

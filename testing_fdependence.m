@@ -48,7 +48,7 @@ wphi_ = w.*z.*( 1/c0*( x ) );
 
 % wphi_ = tstar.*w.*y.*((2*pi).^alpha).*w.^(-alpha)
 % wphi_ = tstar.*w.*y.*((2*pi).^alpha).*w.^(-alpha)
-return
+
 %% This approximation rests on how close (1 - x)^-1 is to (1 + x)
 
 
