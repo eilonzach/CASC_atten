@@ -5,8 +5,8 @@ cd /Users/zeilon/Documents/MATLAB/CASC_atten
 addpath('matguts')
 
 %% parameters
-phase = 'P';
-component = 'Z'; %'Z', 'R', or 'T'
+phase = 'S';
+component = 'T'; %'Z', 'R', or 'T'
 resamprate = 5 ; % new, common sample rate
 filtfs = 1./[40 .5]; % [flo fhi] = 1./[Tmax Tmin] in sec
 taperx = 0.2;
@@ -19,8 +19,8 @@ hifrq = 0.25; % uppermost freq to fit (Hz)
 
 overwrite = true;
 ifOBSonly = false;
-ifusecorZ = false;
-ifplot    = true;
+ifusecorZ = true;
+ifplot    = false;
 ifsave    = true;
 
 %% directories 
@@ -28,7 +28,7 @@ ifsave    = true;
 dbdir = '/Users/zeilon/Work/CASCADIA/CAdb/'; % needs final slash
 dbnam = 'cascBIGdb';
 % DATA DIRECTORY (top level)
-datadir = '/Volumes/DATA_mini/CASCADIA/DATA/'; % needs final slash
+datadir = '/Volumes/DATA_mini2/CASCADIA/DATA/'; % needs final slash
 
 %% =================================================================== %%
 %% ==========================  GET TO WORK  ========================== %%
@@ -43,7 +43,7 @@ dbclose(db);
 
 obsstr = ''; if ifOBSonly, obsstr = 'OBS_'; end
 
-for ie = 215:220 % 44:norids % loop on orids
+for ie = 1:270 % 44:norids % loop on orids
 %     if  mags(ie)<6.9, continue, end
     tic
     fprintf('\n Orid %.0f %s \n\n',orids(ie),epoch2str(evtimes(ie),'%Y-%m-%d %H:%M:%S'))
@@ -103,7 +103,7 @@ for ie = 215:220 % 44:norids % loop on orids
         end
         % grab corrected Z if available and the option is true
         if strcmp(component,'Z') && ifusecorZ && ~isempty(eqar(is).corZ)
-            all_dat0(:,is) = eqar(is).corZ(:);
+            all_dat0(:,is) = eqar(is).corZ(ja);
         end
         fprintf('got data\n')
     end % loop on stas

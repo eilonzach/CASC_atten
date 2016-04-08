@@ -4,8 +4,8 @@ close all
 addpath('matguts')
 
 %% parameters
-phase = 'P';
-component = 'Z'; %'Z', 'R', or 'T'
+phase = 'S';
+component = 'T'; %'Z', 'R', or 'T'
 resamprate = 5 ; % new, common sample rate
 % Do filtfs [12 1] for S, and [5 1] for P
 filtfs = 1./[5 1]; % [flo fhi] = 1./[Tmax Tmin] in sec 
@@ -18,7 +18,7 @@ acormin = 0.65;
 overwrite = true;
 
 ifOBSonly = false;
-ifusecorZ = false;
+ifusecorZ = true;
 
 manualkillstas = {''};
 
@@ -27,7 +27,7 @@ manualkillstas = {''};
 dbdir = '/Users/zeilon/Work/CASCADIA/CAdb/'; % needs final slash
 dbnam = 'cascBIGdb';
 % DATA DIRECTORY (top level)
-datadir = '/Volumes/DATA_mini/CASCADIA/DATA/'; % needs final slash
+datadir = '/Volumes/DATA_mini2/CASCADIA/DATA/'; % needs final slash
 
 %% =================================================================== %%
 %% ==========================  GET TO WORK  ========================== %%
@@ -43,7 +43,7 @@ dbclose(db);
 
 obsstr = ''; if ifOBSonly, obsstr = 'OBS_'; end
 
-for ie = 219:220% 44:norids % loop on orids % got to 475 on SKS,R, % got to 190 on S,T
+for ie = 1:270% 44:norids % loop on orids % got to 475 on SKS,R, % got to 190 on S,T
 %     if  mags(ie)<6.9, continue, end
     tic
     close all

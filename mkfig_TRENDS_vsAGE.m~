@@ -63,8 +63,8 @@ dtsS.age = jdf_crust_age(dtsS.slats,dtsS.slons);
 fprintf('Should indicate age uncertainties on plot')
 dTP.age(isnan(dTP.age)) = dTP.Xrdg(isnan(dTP.age))/km_per_ma;
 dTS.age(isnan(dTS.age)) = dTS.Xrdg(isnan(dTS.age))/km_per_ma;
-dtsP.age(isnan(dtsP.age)) = dtsP.Xrdg(isnan(dtsP.age))/km_per_ma;
-dtsS.age(isnan(dtsS.age)) = dtsS.Xrdg(isnan(dtsS.age))/km_per_ma;
+dtsP.age(isnan(dtsP.age)) = dTP.Xrdg(isnan(dtsP.age))/km_per_ma;
+dtsS.age(isnan(dtsS.age)) = dTS.Xrdg(isnan(dtsS.age))/km_per_ma;
 
 %% ==================================================================== %% 
 %% =============================  DTSTAR  ============================= %% 

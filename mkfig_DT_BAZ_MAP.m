@@ -132,7 +132,7 @@ set(gca,'FontSize',14,'LineWidth',2.5,'box','on')
 
 % save
 if ifsave
-save2pdf(32,sprintf('dT_map_baz_%s_%s%s_%s',method,obsstr,phase,component),'figs');
+save2pdf(32,sprintf('MAP_dT_baz_%s_%s%s_%s',method,obsstr,phase,component),'figs');
 end
 
 end % loop on phases

@@ -1,18 +1,21 @@
 % cycle through events and calculate spectral ratios for all stations
+% pause
 clear all
 close all
 cd /Users/zeilon/Documents/MATLAB/CASC_atten
 addpath('matguts')
 
 %% parameters
-phase = 'P';
-component = 'Z'; %'Z', 'R', or 'T'
-resamprate = 5 ; % new, common sample rate
+phase = 'S';
+component = 'T'; %'Z', 'R', or 'T'
+resamprate = 40 ; % new, common sample rate
 filtfs = 1./[40 .5]; % [flo fhi] = 1./[Tmax Tmin] in sec
 taperx = 0.2;
 datwind = [-160 165]; % window of data in eqar structure
 specwind = [-5 30];
 snrmin = 10;
+
+test_alphas = [0];
 
 overwrite = true;
 ifOBSonly = false;
@@ -42,12 +45,14 @@ parms.inv.fmax = 0.5; % nominal - reset below according to fcross
 parms.inv.corr_c_skip = true;
 parms.inv.ifwt = true;
 
+parms.inv.alpha = 0.25;
+
 %% directories 
 % ANTELOPE DB DETAILS
 dbdir = '/Users/zeilon/Work/CASCADIA/CAdb/'; % needs final slash
 dbnam = 'cascBIGdb';
 % DATA DIRECTORY (top level)
-datadir = '/Volumes/DATA_mini/CASCADIA/DATA/'; % needs final slash
+datadir = '/Volumes/DATA/CASCADIA/DATA/'; % needs final slash
 
 %% =================================================================== %%
 %% ==========================  GET TO WORK  ========================== %%
@@ -62,7 +67,7 @@ dbclose(db);
 
 obsstr = ''; if ifOBSonly, obsstr = 'OBS_'; end
 
-for ie = 215:215 % 44:norids % loop on orids
+for ie = 216:402 % 44:norids % loop on orids
 %     if  mags(ie)<6.9, continue, end
     tic
     fprintf('\n Orid %.0f %s \n\n',orids(ie),epoch2str(evtimes(ie),'%Y-%m-%d %H:%M:%S'))
@@ -132,7 +137,7 @@ for ie = 215:215 % 44:norids % loop on orids
         end
         % grab corrected Z if available and the option is true
         if strcmp(component,'Z') && ifusecorZ && ~isempty(eqar(is).corZ)
-            all_dat0(:,is) = eqar(is).corZ(:);
+            all_dat0(:,is) = eqar(is).corZ(ja);
         end
         
         fprintf('got data\n')
@@ -151,17 +156,39 @@ for ie = 215:215 % 44:norids % loop on orids
     parms.inv.fmax = nanmean([eqar(indgd).fcross]');
 
     %% RUN THROUGH COMB
-    [delta_tstar_comb,delta_T_comb,std_dtstar_comb,pairwise] = combspectra_nofuss(all_dat0(:,indgd),resamprate,parms,0);
+    [delta_tstar_comb,delta_T_comb,std_dtstar_comb,pairwise,fmids] = combspectra(all_dat0(:,indgd),resamprate,parms,0);
+
+    %% ------------------ ALL-IN-ONE INVERSION + ALPHAS ------------------
+    Amat = pairwise.As;
+    phimat = pairwise.phis;
+    wtmat = double(pairwise.inds).*pairwise.wts;
+    % test_alphas = [0];
+    parms.inv.amp2phiwt = 5;
+
+%     %% use pairwise 1by1 then lsqr on each evt's dtstar & dT to get sta values
+%     [ delta_tstar_pref,delta_T_pref,alpha_pref,alpha_misfits,dtstars,dTs ] ...
+%         = invert_1by1_Aphis_4_STA_dtdtstar_alpha(Amat,phimat,fmids,test_alphas,wtmat,parms.inv.amp2phiwt );
+%         
+    %% use pairwise to make 1 global inversion for sta dtstar & dT
+    [ delta_tstar_pref,delta_T_pref,alpha_pref,alpha_misfits,dtstars,dTs,A0s, Eamp, Ephi ] ...
+        = invert_allin1_Aphis_4_STA_dtdtstar_alpha(Amat,phimat,fmids,test_alphas,wtmat,parms.inv.amp2phiwt );
+    
+    delta_tstar_use = delta_tstar_pref;
+    delta_T_use = delta_T_pref;
+    parms.inv.alpha = alpha_pref;
     
     %% ---------------------- STORE RESULTS -----------------------
     % STORE RESULTS
     fprintf('Recording results in arrival structure...')
     % prep eqar to receive new fields
-    eqar(1).dtstar_comb = []; eqar(1).dT_comb = []; eqar(1).stds_comb = []; eqar(1).par_dtstar_comb = [];
+    eqar(1).dtstar_comb = []; 
+    eqar(1).dT_comb = []; 
+%     eqar(1).stds_comb = []; 
+    eqar(1).par_dtstar_comb = [];
                       
-    eqar(indgd) =  dealto(eqar(indgd),'dtstar_comb',delta_tstar_comb);
-    eqar(indgd) =  dealto(eqar(indgd),'stds_comb',std_dtstar_comb);
-    eqar(indgd) =  dealto(eqar(indgd),'dT_comb',delta_T_comb);
+    eqar(indgd) =  dealto(eqar(indgd),'dtstar_comb',delta_tstar_use);
+    eqar(indgd) =  dealto(eqar(indgd),'dT_comb',delta_T_use);
+%     eqar(indgd) =  dealto(eqar(indgd),'stds_comb',std_dtstar_comb);
     eqar(indgd) =  dealto(eqar(indgd),'par_dtstar_comb',parms);
 
 	indbd = setdiff(1:length(eqar),indgd);

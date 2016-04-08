@@ -13,7 +13,7 @@ close all
 % 2 = COMPLIANCE ONLY, same nomenclature but only removing pressure component
 % 3 = COMPLIANCE AND THEN TILT, individual component method
 % (4) = TILT AND COMPLIANCE - BELL ET AL., 2014 reorient in maximum coherence direction
-method_trans_func = 1; 
+method_trans_func = 2; 
 
 % CHOOSE WHICH DATA TO CORRECT
 cor_opt = 1; % option for which data to correct: 0) all, 1) data, 2) noise
@@ -25,8 +25,14 @@ noise_win = [-20000 -14000]; % should be T seconds (6000) in length, refer to ev
 smooth_trans_func = false; % option to smooth transfer functions
 npt_mav_stf = 10; %moving average window```
 
-% OPTION TO FILTER TRANSFER FUNCTIONS
+% OPTION TO FILTER TRANSFER FUNCTIONS - definitely do this!!
 filt_trans_func = true; % option to low-pass filter transfer functions 
+
+% OTHER OPTIONS
+overwrite = true;
+ifplot = 0; % option to do the plots
+ifsavefigs = 0; % option to save the figures
+ifmanualQC = 0; % option to manually choose if to keep corrected data
 
 % RESAMPLE DATA - ## CURRENTLY NOT CODED ##
 resamprate = 5; % new sample rate to downsamp to
@@ -39,14 +45,10 @@ fmin=0.005;fmax=0.02;
 coh_min=0.8;
 chorz_max=1;
 
-plot_filter = [10 200]; %[lowpass highpass] in seconds (i.e. [min_period max_period])
+plot_filter = [1 50]; %[lowpass highpass] in seconds (i.e. [min_period max_period])
 
-periods = [20 32 40 60 80 100 125 150 200];
+periods = [1 10 20 50 75 100 125 150 200];
 
-% PLOT AND SAVE OPTIONS
-overwrite = true;
-ifplot = 1; % option to do the plots
-ifsavefigs = 0; % option to save the figures
 
 %% paths
 cd('/Users/zeilon/Documents/MATLAB/CASC_atten/')
@@ -58,22 +60,22 @@ specdir = '~/Work/CASCADIA/CAdb/spectra/';
 dbdir = '/Users/zeilon/Work/CASCADIA/CAdb/'; % needs final slash
 dbnam = 'cascBIGdb';
 % path to top level of directory tree for data
-datadir = '/Volumes/DATA_mini/CASCADIA/DATA/'; % needs final slash
+datadir = '/Volumes/DATA_mini2/CASCADIA/DATA/'; % needs final slash
 
 
 %% get to work
 [ norids,orids,elats,elons,edeps,evtimes,mags ]  = db_oriddata( dbdir,dbnam ); % load events data
 [ nstas,stas,slats,slons,selevs,ondate,offdate,staname,statype ] = db_stadata( dbdir,dbnam ); %load stations data
 
-for ie = 219:220 % 1:norids % loop on orids
+for ie = 1:269 % 1:norids % loop on orids
     fprintf('\n Orid %.0f %s \n\n',orids(ie),epoch2str(evtimes(ie),'%Y-%m-%d %H:%M:%S'))
     evdir = [num2str(orids(ie),'%03d'),'_',epoch2str(evtimes(ie),'%Y%m%d%H%M'),'/'];
     evday = epoch2str(evtimes(ie),'%Y%j');
     datinfofile = [datadir,evdir,'_datinfo'];
     evstr = regexprep(strtok(evdir,'/'),'_','-');
            
-    if any((evtimes(ie)-evtimes)>0 & (evtimes(ie)-evtimes) < 24*60*60)
-        fprintf('Another event within prev 24 hrs... skipping\n')
+    if any((evtimes(ie)-evtimes)>0 & (evtimes(ie)-evtimes) < 20*60*60)
+        fprintf('Another event within prev 20 hrs... skipping\n')
         continue
     end
 
@@ -111,7 +113,7 @@ for ie = 219:220 % 1:norids % loop on orids
         T = (win_pt_end(1)-win_pt_start(1)+1)*dt;
         Nwin = length(win_pt_start);
         samprate = 1./dt;
-        freqcomp = sqrt(9.8/(-2*pi*selevs(is)));
+        freqcomp = sqrt(9.8/(-2*pi*data.station.selev));
 
 %% ==================================================================== %%       
         %% COMPUTE TRANSFER FUNCTION
@@ -320,21 +322,24 @@ for ie = 219:220 % 1:norids % loop on orids
         H2_filt  = filtfilt(b,a,H2dat);
         P_filt  = filtfilt(b,a,Pdat);
 
-        figure(101), clf; set(gcf,'pos',[-1200 340 1100 800])
-        subplot(411)
-        title(sprintf('%s  %s',sta,evstr)), hold on
-        plot(tt,Z_filt,'-k'); ylabel('Z')
-        subplot(412)
-        plot(tt,H1_filt,'-k'); ylabel('H1')
-        subplot(413)
-        plot(tt,H2_filt,'-k'); ylabel('H2')
-        subplot(414)
-        plot(tt,P_filt,'-k'); ylabel('P')
+        if ifplot % plot original seismograms
+            figure(101), clf; set(gcf,'pos',[-1200 340 1100 800])
+            subplot(411)
+            title(sprintf('%s  %s',sta,evstr)), hold on
+            plot(tt,Z_filt,'-k'); ylabel('Z')
+            subplot(412)
+            plot(tt,H1_filt,'-k'); ylabel('H1')
+            subplot(413)
+            plot(tt,H2_filt,'-k'); ylabel('H2')
+            subplot(414)
+            plot(tt,P_filt,'-k'); ylabel('P')
 
-        set(gcf,'PaperPositionMode','manual');
-        set(gcf,'PaperUnits','inches');
-        set(gcf,'PaperOrientation','portrait');
-        set(gcf,'PaperPosition',[.05 .05 10.5 8]);    
+            set(gcf,'PaperPositionMode','manual');
+            set(gcf,'PaperUnits','inches');
+            set(gcf,'PaperOrientation','portrait');
+            set(gcf,'PaperPosition',[.05 .05 10.5 8]);  
+        end
+        
 
         %% COMPUTE DATA SPECTRA
         % calc. various parameters
@@ -673,6 +678,7 @@ for ie = 219:220 % 1:norids % loop on orids
         end
         
         %% Manual QC
+        if ifmanualQC
         % >>>>> comment out to not do manual checks
         yn = input('keep this corrected data? [ENTER for yes, otherwise no] ','s');
         if ~isempty(yn) % SKIPPING - but have to make sure no prev. version is carried through
@@ -697,6 +703,7 @@ for ie = 219:220 % 1:norids % loop on orids
                 
             fprintf(' chose to skip.\n')
             continue
+        end
         end
             
         % <<<<< comment out to here

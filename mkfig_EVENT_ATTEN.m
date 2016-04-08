@@ -79,7 +79,7 @@ set(gca,'fontsize',14,'XTick',[0.05:0.05:0.25])
 ylim([-2.5 1.5])
 if ifsave
     save2pdf(3,sprintf('1evt_specratios_%s_%s_%.0f_%s',...
-        phase,component,orid,epoch2str(evtime,'%Y-%m-%d')),'figs')
+        phase,component,orid,epoch2str(evtime,'%Y-%m-%d')),'figs/1evt')
 end
 
 %% waveforms
@@ -87,7 +87,7 @@ figure(2),
 set(gca,'fontsize',14)
 if ifsave
     save2pdf(2,sprintf('1evt_waveforms_%s_%s_%.0f_%s',...
-        phase,component,orid,epoch2str(evtime,'%Y-%m-%d')),'figs')
+        phase,component,orid,epoch2str(evtime,'%Y-%m-%d')),'figs/1evt')
 end
 
 %% mapview
@@ -99,7 +99,7 @@ title('$\Delta t^*$ recorded across JdF OBS stations','interpreter','latex','fon
 
 if ifsave
     save2pdf(31,sprintf('1evt_dtstar_map_%s_%s_%.0f_%s',...
-        phase,component,orid,epoch2str(evtime,'%Y-%m-%d')),'figs')
+        phase,component,orid,epoch2str(evtime,'%Y-%m-%d')),'figs/1evt')
 end
 
 %% section
@@ -107,6 +107,6 @@ figure(17),
 % title('Section of $\Delta t^*$ and $\delta T$ recorded across JdF ','interpreter','latex','fontsize',18)
 if ifsave
     save2pdf(17,sprintf('1evt_section_%s_%s_%.0f_%s',...
-        phase,component,orid,epoch2str(evtime,'%Y-%m-%d')),'figs')
+        phase,component,orid,epoch2str(evtime,'%Y-%m-%d')),'figs/1evt')
 end
 

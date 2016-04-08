@@ -9,7 +9,7 @@ ifsave = 1;
 
 method = 'comb';% 'comb' or 'specR'
 
-ifOBSonly = true;
+ifOBSonly = false;
 
 plotsize = 800;
 scale = 0.35; % length of lines
@@ -51,7 +51,7 @@ obsstr = ''; if ifOBSonly, obsstr = 'OBS_'; end
 for ip = 2:length(phases)
 phase = phases{ip};
 component = components{ip};
-tstlim = ip*[-0.8 0.8];
+tstlim = ip*[-0.75 0.75];
 
 % LOAD RESULTS
 if strcmp(method,'specR')
@@ -126,7 +126,7 @@ set(gca,'FontSize',14,'LineWidth',2.5,'box','on')
 
 % save
 if ifsave
-save2pdf(32,sprintf('dtstar_map_baz_%s_%s%s_%s',method,obsstr,phase,component),'figs');
+save2pdf(32,sprintf('MAP_dtstar_baz_%s_%s%s_%s',method,obsstr,phase,component),'figs');
 end
 
 end

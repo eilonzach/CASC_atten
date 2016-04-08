@@ -6,7 +6,7 @@ addpath('matguts')
 
 %% parameters
 overwrite = true;
-phase = 'P';
+phase = 'S';
 resamprate = 5 ; % new, common sample rate
 wind = [-200 200]; % seconds before and after arrival to save data for this arrival
 
@@ -16,7 +16,7 @@ wind = [-200 200]; % seconds before and after arrival to save data for this arri
 dbdir = '/Users/zeilon/Work/CASCADIA/CAdb/'; % needs final slash
 dbnam = 'cascBIGdb';
 % DATA DIRECTORY (top level)
-datadir = '/Volumes/DATA_mini/CASCADIA/DATA/'; % needs final slash
+datadir = '/Volumes/DATA_mini2/CASCADIA/DATA/'; % needs final slash
 
 %% =================================================================== %%
 %% ==========================  GET TO WORK  ========================== %%
@@ -29,7 +29,7 @@ dbor = dblookup_table(db,'origin');
 norids = dbnrecs(dbor);
 dbclose(db);
 
-for ie = 215:220 % 44:norids % loop on orids
+for ie = 1:270 % 44:norids % loop on orids
     fprintf('\n Orid %.0f %s \n\n',orids(ie),epoch2str(evtimes(ie),'%Y-%m-%d %H:%M:%S'))
     evdir = [num2str(orids(ie),'%03d'),'_',epoch2str(evtimes(ie),'%Y%m%d%H%M'),'/'];
     if ~exist([datadir,evdir,'_datinfo.mat'],'file'), fprintf('No data at all for this event\n'), continue, end

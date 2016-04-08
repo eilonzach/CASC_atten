@@ -117,7 +117,7 @@ set(gca,'FontSize',14,'LineWidth',2.5,'box','on')
 
 % save
 if ifsave
-save2pdf(31,sprintf('dtstar_map_staav_%s_%s%s_%s',method,obsstr,phase,component),'figs');
+save2pdf(31,sprintf('MAP_dtstar_staav_%s_%s%s_%s',method,obsstr,phase,component),'figs');
 
 results = struct('stas',{stas},'dtstar',sta_terms,'slats',slats,'slons',slons,'selevs',selevs,'Nobs',Nobs);
 resfile = sprintf('stav_dtstar%s_%s%s_%s',method,obsstr,phase,component);

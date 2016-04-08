@@ -2,11 +2,11 @@
 clear all
 % if running alone, establish these, otherwise use previous values
 if ~exist('phase') || ~exist('component') 
-phase = 'P';
-component = 'Z';
+phase = 'S';
+component = 'T';
 end
 
-ifOBSonly = true;
+ifOBSonly = false;
 
 %% directories 
 % ANTELOPE DB DETAILS

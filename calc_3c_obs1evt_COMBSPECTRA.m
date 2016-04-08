@@ -9,7 +9,7 @@ phase = 'S';
 component = 'T'; %'Z', 'R', or 'T'
 orid = 269;
 
-samprate = 40 ; % new, common sample rate
+samprate = 5 ; % new, common sample rate
 filtfs = 1./[40 1]; % [flo fhi] = 1./[Tmax Tmin] in sec
 taperx = 0.2;
 datwind = [-160 165]; % window of data in eqar structure
@@ -47,7 +47,7 @@ parms.inv.ifwt = true;
 dbdir = '/Users/zeilon/Work/CASCADIA/CAdb/'; % needs final slash
 dbnam = 'cascBIGdb';
 % DATA DIRECTORY (top level)
-datadir = '/Volumes/DATA/CASCADIA/DATA/'; % needs final slash
+datadir = '/Volumes/DATA_mini2/CASCADIA/DATA/'; % needs final slash
 
 %% =================================================================== %%
 %% ==========================  GET TO WORK  ========================== %%
@@ -148,7 +148,7 @@ end % loop on stas
 % ONLY USE GOOD TRACES
 indgd = 1:size(eqar);
 indgd(mean(abs(all_dat0(:,indgd)))==0)     = []; % kill zero traces
-indgd(mean(abs(all_dat0(:,indgd)))<1e-6)     = []; % kill zero traces
+indgd(mean(abs(all_dat0(:,indgd)))<1e-12)     = []; % kill zero traces
 indgd(isnan(mean(abs(all_dat0(:,indgd))))) = []; % kill nan traces
 indgd([eqar(indgd).snr_wf]<snrmin)                  = []; % kill low snr traces
 if length(indgd) < 2, fprintf('NO GOOD TRACES/ARRIVALS, skip...\n'), return, end
@@ -168,9 +168,24 @@ all_dat_do = [stak,all_dat0(:,indgd)];
 parms.inv.fmax = nanmean([eqar(indgd).fcross]');
 
 %% ------------------ COMB THE SPECTRA! ------------------
-[delta_tstar_comb,delta_T_comb,std_dtstar_comb,pairwise] = combspectra_nofuss(all_dat_do,samprate,parms,false);
+[delta_tstar_comb,delta_T_comb,std_dtstar_comb,pairwise,fmids] = combspectra_nofuss(all_dat_do,samprate,parms,false);
 % [delta_tstar_comb_1,delta_T_comb_1,std_dtstar_comb_1,pairwise_1] = combspectra_cskip(all_dat_do,samprate,parms,false);
 % [delta_tstar_comb_2,delta_T_comb_2,std_dtstar_comb_2,pairwise_2] = combspectra(all_dat_do,samprate,parms,false);
+
+%% ------------------ ALL-IN-ONE INVERSION + ALPHAS ------------------
+Amat = pairwise.As;
+phimat = pairwise.phis;
+wtmat = double(pairwise.inds).*pairwise.wts;
+test_alphas = [0:0.05:0.9];
+% test_alphas = [0];
+parms.inv.amp2phiwt = 2;
+ 
+[ delta_tstar_2,delta_T_2,alpha_pref,alpha_misfits,dtstars,dTs,A0s, Eamp, Ephi ] ...
+    = allin1invert_Aphis_4_STA_dtdtstar_alpha(Amat,phimat,fmids,test_alphas,wtmat,parms.inv.amp2phiwt );
+
+[delta_tstar_comb,delta_tstar_2]
+
+return
 
 %% ---------------------- STORE RESULTS -----------------------
 % STORE RESULTS

@@ -25,7 +25,7 @@ for ia = 1:length(ages)
 
 [ Qs1,Qp,Vs1,Vp ] = QV_at_z( ages(ia),Z,gs(ig),frq);
 % [ Qs1,Qp,Vs1,Vp ] = QV_at_z( ages(ia),Z,gs(ig),frq);
-% [ Qs2,Qp,Vs2,Vp,gs_i ] = QV_at_z_WET( ages(ia),Z,1e2,frq);
+[ Qs2,Qp2,Vs2,Vp2,gs_i ] = QV_at_z_WET( ages(ia),Z,1e2,frq);
 Qs = Qs1;
 Vs = Vs1;
 if ages(ia)>14
