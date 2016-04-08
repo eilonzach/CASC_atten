@@ -1,5 +1,4 @@
-function [delta_tstar,delta_T,std_dtstar,pairwise,fmids] = combspectra(dat,samprate,parms,ifplot)
-% [delta_tstar,delta_T,std_dtstar,pairwise,fmids] = combspectra(dat,samprate,parms,ifplot)
+function [delta_tstar,delta_T,std_dtstar,pairwise] = combspectra(dat,samprate,parms,ifplot)
 
 %% establish some parms
 if nargin < 4 
@@ -23,14 +22,8 @@ maxphi  = parms.qc.maxphi;
 amp2phiwt = parms.inv.amp2phiwt;
 fmin      = parms.inv.fmin;
 fmax      = parms.inv.fmax;
-corc_skip = parms.inv.corr_c_skip;
+corr_c_skip = parms.inv.corr_c_skip;
 ifwt      = parms.inv.ifwt;
-
-if ~isfield(parms.inv,'alpha')
-    alpha = 0;
-else
-    alpha = parms.inv.alpha;
-end
 
 fnq = samprate/2;
 dt = 1./samprate;
@@ -40,12 +33,15 @@ Nstas = size(dat,2);
 if Nstas == 1, error('Only 1 station''s data!'), end
 N = handshake(Nstas);
 
+%% set up results structures
 dtstar_pairwise = zeros(N,1);
 dT_pairwise = zeros(N,1);
 misfitnormed_pairwise = zeros(N,1);
+
 As_pairwise = zeros(N,Nwds);
 phis_pairwise = zeros(N,Nwds);
 wts_pairwise = zeros(N,Nwds);
+doinds_pairwise = zeros(N,Nwds);
 
 %% prepare filter + cleaning parms
 % Make set of period windows for bandpass filter
@@ -84,7 +80,7 @@ for iw = 1:Nwds
     fltinfo(iw).fhi = fhis(iw);
 end
 
-% set up cleaning/taper/window parms
+%% set up cleaning/taper/window parms
 nwin=round((postx+prex)/dt); % window length in samples
 
 wdo1 = tukeywin(npt,2*taperx);
@@ -117,14 +113,14 @@ for is2 = is1+1:Nstas
     uj(2*(count-1)+[1 2]) = [is1 is2];
     u (2*(count-1)+[1 2]) = [-1 1]; % delta is value of 2 - value of 1
     
-    %% Do the work of running through the comb - option to correct cycle skip
-    [ As,phis,wts ] = run_comb( dat(:,is1),dat(:,is2),fltinfo,wdo1,wdo2,jbds,dt,pretime,maxphi,corc_skip,fmin,ifplot );
+    %% RUN THROUGH THE COMB - option to correct cycle skip
+    [ As,phis,wts ] = run_comb( dat(:,is1),dat(:,is2),fltinfo,wdo1,wdo2,jbds,dt,pretime,maxphi,corr_c_skip,fmin,ifplot );
     if ~ifwt, wts(iw) = 1;end
 
     %% QC
-    inds = (fmids<=fmax & abs(phis)<maxphi & sqrt(wts)>minacor);
+    inds = find(fmids<=fmax & abs(phis)<maxphi & sqrt(wts)>minacor);
 
-    if sum(inds)<4 % only do if there are at least 4 ok measurements!
+    if length(inds)<4 % only do if there are at least 4 ok measurements!
         As_pairwise(count,:) = As;
         phis_pairwise(count,:) = phis;
         wts_pairwise(count,:) = wts;
@@ -137,16 +133,42 @@ for is2 = is1+1:Nstas
     
     %% calculate dtstar and dT
     % estimate from simultaneous inversion of amp and phase data
-    [ dtstar,dT,A0,misfit,res ] = invert_1pair_Aphi_4_dtdtstar( As(inds),phis(inds),fmids(inds), wts(inds),amp2phiwt,alpha);
+%     [ dtstar,dT,A0,misfit,E ] = invert_Aphi_4_dtdtstar( As(inds),phis(inds),fmids(inds),fnq, wts(inds),amp2phiwt);
+    res = 100*ones(handshake(4),1);
+    parms = 3;
+    if ifplot
+    figure(69), clf, fprintf('\n')
+    end
+    for iffs = sum(fmids(inds)<fmin):length(inds)
+        doinds = inds(end-iffs+1:end);
+        [ dtstar_i,dT_i,A0_i,misfit_i,E_i ] = invert_Aphi_4_dtdtstar( As(doinds),phis(doinds),fmids(doinds), wts(doinds),amp2phiwt);
+        res_i = sqrt([amp2phiwt*wts(doinds);wts(doinds)]).*E_i;
+        P = 1 - ftest(res,parms,res_i,parms);
+        if ifplot
+        subplot(211),hold on, plot(iffs,rms(res_i),'o')
+        subplot(212),hold on, plot(iffs,P,'or')
+        end
+        if P > 0 % using a VERY loose criterion for including more data, that the P(improvement) is not negative!
+            dtstar = dtstar_i;
+            dT = dT_i;
+            A0 = A0_i;
+            misfit = misfit_i;
+            res = E_i;
+            if ifplot
+            fprintf('Using first %.0f inds\n',iffs)
+            end
+            dodo = doinds;
+        end
+    end
     
     %% plots
     if ifplot
-        figure(4), clf, set(gcf,'pos',[600 600 500,700])
+        figure(3), clf, set(gcf,'pos',[600 600 500,700])
 
         subplot(211), hold on
         scatter(fmids,log(As),110*wts,'or','MarkerFaceColor','r')
         scatter(fmids(inds),log(As(inds)),110*wts(inds),'ok','MarkerFaceColor','r')
-%         scatter(fmids(dodo),log(As(dodo)),100*wts(dodo),'o','MarkerFaceColor','b')
+        scatter(fmids(dodo),log(As(dodo)),100*wts(dodo),'o','MarkerFaceColor','b')
         plot(fmids,log(A0) - pi*fmids*dtstar,'g','Linewidth',1.5)
         plot(fmax*[1 1],[-1 1],'--b')
         xlabel('freq','FontSize',18), ylabel('log(Amp)','FontSize',18)
@@ -156,7 +178,7 @@ for is2 = is1+1:Nstas
         subplot(212), hold on
         scatter(fmids,phis,110*wts,'or','MarkerFaceColor','r')
         scatter(fmids(inds),phis(inds),110*wts(inds),'ok','MarkerFaceColor','r')
-%         scatter(fmids(dodo),phis(dodo),100*wts(dodo),'o','MarkerFaceColor','b')
+        scatter(fmids(dodo),phis(dodo),100*wts(dodo),'o','MarkerFaceColor','b')
         plot(fmids,(log(fnq) - log(fmids))*dtstar./pi + dT,'g','Linewidth',1.5)
         plot(fmax*[1 1],[-1 1],'--b')  
         set(gca,'Xscale','log','xlim',[0.03 1.],'ylim',maxphi*[-1 1])
@@ -167,18 +189,18 @@ for is2 = is1+1:Nstas
     As_pairwise(count,:) = As;
     phis_pairwise(count,:) = phis;
     wts_pairwise(count,:) = wts;
-    inds_pairwise(count,:) = inds;
+    doinds_pairwise(count,doinds) = true;
 
     dtstar_pairwise(count) = dtstar;
     dT_pairwise(count) = dT;
-    misfitnormed_pairwise(count) = misfit./sum(inds); % weight  will be  1./misfit, normalised by number of datapoints
+    misfitnormed_pairwise(count) = misfit./length(inds); % weight  will be  1./misfit, normalised by number of datapoints
 
 end
 end
 delete(hw)
 
 pairwise = struct('dtstar',dtstar_pairwise,'dT',dT_pairwise,'misfit_normed',misfitnormed_pairwise,...
-                  'As',As_pairwise,'phis',phis_pairwise,'wts',wts_pairwise,'inds',inds_pairwise);
+                  'As',As_pairwise,'phis',phis_pairwise,'wts',wts_pairwise,'doinds',doinds_pairwise);
 
 %% solve the least squares problem
 G = sparse(ui,uj,u,N,Nstas,2*N);

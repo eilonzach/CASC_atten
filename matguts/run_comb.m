@@ -1,16 +1,16 @@
-function [ As,phis,wts ] = run_comb( dat1,dat2,fltdat,wdo1,wdo2,jbds,dt,pretime,maxphi,cor_c_skip,fmin,ifplot )
+function [ As,phis,wts ] = run_comb( dat1,dat2,fltinfo,wdo1,wdo2,jbds,dt,pretime,maxphi,cor_c_skip,fmin,ifplot )
 % [ As,phis,wts ] = run_comb( dat1,dat2,fltdat,wdo1,wdo2,jbds,dt,pretime,maxphi,corcskip,fmin,ifplot )
 %  function to run through the comb of filters and calcultate the phase
 %  shift and amplitude scaling (as well as weight assigned) for each
 %  narrow-band filter. Option whether or not to use low frequencies to do
 %  the cycle-skip correction.
 
-    fltdat = fltdat(:);
-    Nwds = length(fltdat);
+    fltinfo = fltinfo(:);
+    Nwds = length(fltinfo);
     if cor_c_skip
-        if unique(diff([fltdat.fmid]')<0)
+        if unique(diff([fltinfo.fmid]')<0)
 %             fprintf('filter freqs are descending in value... flipping\n')
-            fltdat = flipud(fltdat);
+            fltinfo = flipud(fltinfo);
             flipped_fs = true;
         else
             flipped_fs = false;
@@ -19,7 +19,7 @@ function [ As,phis,wts ] = run_comb( dat1,dat2,fltdat,wdo1,wdo2,jbds,dt,pretime,
         flipped_fs = false;
     end
 
-    fmids = [fltdat.fmid]';
+    fmids = [fltinfo.fmid]';
     ttws = jbds.*dt - pretime;
     % taper
     dat1 = dat1.*wdo1; % taper whole data series
@@ -35,8 +35,8 @@ function [ As,phis,wts ] = run_comb( dat1,dat2,fltdat,wdo1,wdo2,jbds,dt,pretime,
         datp2 = [zeros(1000,1);dat2;zeros(1000,1)]; 
 
         % FILTER zerophase bandpass filter & window
-        datpf1=filtfilt(fltdat(iw).bb, fltdat(iw).aa, datp1);
-        datpf2=filtfilt(fltdat(iw).bb, fltdat(iw).aa, datp2);
+        datpf1=filtfilt(fltinfo(iw).bb, fltinfo(iw).aa, datp1);
+        datpf2=filtfilt(fltinfo(iw).bb, fltinfo(iw).aa, datp2);
         % lop off padding
         datf1 = datpf1(1001:end-1000);
         datf2 = datpf2(1001:end-1000);

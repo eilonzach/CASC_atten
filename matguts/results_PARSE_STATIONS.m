@@ -55,12 +55,14 @@ end
 
 
 %% wipe the secondary stations' info
-kill = doubles(:,2);
-stas_parsed(kill) = [];
-slons_parsed(kill) = [];
-slats_parsed(kill) = [];
-selevs_parsed(kill) = [];
-vals_parsed(kill,:) = [];
+if ~isempty(doubles)
+    kill = doubles(:,2);
+    stas_parsed(kill) = [];
+    slons_parsed(kill) = [];
+    slats_parsed(kill) = [];
+    selevs_parsed(kill) = [];
+    vals_parsed(kill,:) = [];
+end
 
 end
 

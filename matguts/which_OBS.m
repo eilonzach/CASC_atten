@@ -1,4 +1,7 @@
 function [IP,note] = which_OBS(sta)
+% [IP,note] = which_OBS(sta)
+% IP is 'WHOI', 'LDEO', or 'SIO';
+% note is [] or 'TRM'
 
 IP = [];
 note = [];
