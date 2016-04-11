@@ -1,6 +1,6 @@
 % cycle through events and calculate spectral ratios for all stations
 % pause
-clear all
+% clear all
 close all
 cd /Users/zeilon/Documents/MATLAB/CASC_atten
 addpath('matguts')
@@ -20,8 +20,8 @@ test_alphas = [0];
 overwrite = true;
 ifOBSonly = false;
 ifusecorZ = false;
-ifplot    = true;
-ifsave    = true;
+ifplot    = false;
+ifsave    = false;
 ifplotonly = false;
 
 % combspec parms
@@ -67,7 +67,7 @@ dbclose(db);
 
 obsstr = ''; if ifOBSonly, obsstr = 'OBS_'; end
 
-for ie = 216:402 % 44:norids % loop on orids
+for ie = 230:230 % 44:norids % loop on orids
 %     if  mags(ie)<6.9, continue, end
     tic
     fprintf('\n Orid %.0f %s \n\n',orids(ie),epoch2str(evtimes(ie),'%Y-%m-%d %H:%M:%S'))
@@ -165,10 +165,11 @@ for ie = 216:402 % 44:norids % loop on orids
     % test_alphas = [0];
     parms.inv.amp2phiwt = 5;
 
-%     %% use pairwise 1by1 then lsqr on each evt's dtstar & dT to get sta values
-%     [ delta_tstar_pref,delta_T_pref,alpha_pref,alpha_misfits,dtstars,dTs ] ...
-%         = invert_1by1_Aphis_4_STA_dtdtstar_alpha(Amat,phimat,fmids,test_alphas,wtmat,parms.inv.amp2phiwt );
-%         
+    return
+    %% use pairwise 1by1 then lsqr on each evt's dtstar & dT to get sta values
+    [ delta_tstar_pref,delta_T_pref,alpha_pref,alpha_misfits,dtstars,dTs ] ...
+        = invert_1by1_Aphis_4_STA_dtdtstar_alpha(Amat,phimat,fmids,test_alphas,wtmat,parms.inv.amp2phiwt );
+        
     %% use pairwise to make 1 global inversion for sta dtstar & dT
     [ delta_tstar_pref,delta_T_pref,alpha_pref,alpha_misfits,dtstars,dTs,A0s, Eamp, Ephi ] ...
         = invert_allin1_Aphis_4_STA_dtdtstar_alpha(Amat,phimat,fmids,test_alphas,wtmat,parms.inv.amp2phiwt );

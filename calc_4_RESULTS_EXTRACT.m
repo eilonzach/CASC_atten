@@ -2,8 +2,8 @@
 clear all
 % if running alone, establish these, otherwise use previous values
 if ~exist('phase') || ~exist('component') 
-phase = 'S';
-component = 'T';
+phase = 'P';
+component = 'Z';
 end
 
 ifOBSonly = false;

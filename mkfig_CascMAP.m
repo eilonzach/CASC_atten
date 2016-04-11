@@ -2,10 +2,12 @@
 
 addpath('/Users/zeilon/Documents/MATLAB/lib/grdread2')
 addpath('/Users/zeilon/Documents/MATLAB/lib/haxby_colourmap')
+addpath('/Users/zeilon/Documents/MATLAB/CASC_atten/matguts')
 
 if ~exist('latlims','var'), latlims=[39 51];      end
 if ~exist('lonlims','var'), lonlims=[-132 -110];  end
 
+wd = pwd;
 cd('/Users/zeilon/Documents/MATLAB/CASC_atten/mapdata');
 
 coast = load('m_casccoast.mat'); % load coastline
@@ -75,10 +77,10 @@ plot(fzs(:,1),fzs(:,2),'--k','Linewidth',1) % transforms
 %      num2str([-100:100:700]'),'FontWeight','bold')
 
 %% plot isochrons
-[chgrdX,chgrdY] = meshgrid(linspace(lonlims(1),lonlims(2),1000),linspace(latlims(1),latlims(2),1000)); 
-[ chgrdage,chrons,F ] = jdf_crust_age(chgrdY,chgrdX);
-chtick = unique(chrons.age(~isnan(chrons.age)));
-contour(chgrdX,chgrdY,chgrdage,chtick)
+% [chgrdX,chgrdY] = meshgrid(linspace(lonlims(1),lonlims(2),1000),linspace(latlims(1),latlims(2),1000)); 
+% [ chgrdage,chrons,F ] = jdf_crust_age(chgrdY,chgrdX);
+% chtick = unique(chrons.age(~isnan(chrons.age)));
+% contour(chgrdX,chgrdY,chgrdage,chtick)
 
 
 xlim(lonlims)
@@ -86,4 +88,4 @@ ylim(latlims)
 grid on
 box on
 
-cd ..
+cd(wd)
