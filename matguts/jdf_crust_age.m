@@ -1,8 +1,16 @@
-function [ ages,chrons,F ] = jdf_crust_age( lats,lons )
+function [ ages,chrons,F ] = jdf_crust_age( lats,lons,extrapmethod)
 % [ ages,chrons,F ] = jdf_crust_age( lats,lons )
 %  Function to take lat,lon points and interpolate a grid of seafloor ages
 %  to compute the age of the crust at the points specified, on the Juan de
 %  Fuca or Gorda plates
+
+if nargin == 0
+    lats = 0;
+    lons = 0;
+end
+if nargin < 3 
+    extrapmethod = 'none';
+end
 
 %% key for chron name ===> age
 c2afile = '~/Work/CASCADIA/DATA/mapdata/isochrons_dwilson/JGR1993/chron_ages_ze.txt';
@@ -81,7 +89,7 @@ fclose(fid);
 % scatter(chlon(chage<15),chlat(chage<15),60,chage(chage<15), 'filled')
 
 nnan = ~isnan(chage);
-F = scatteredInterpolant(chlon(nnan),chlat(nnan),chage(nnan),'linear','none');
+F = scatteredInterpolant(chlon(nnan),chlat(nnan),chage(nnan),'linear',extrapmethod);
 
 ages = F(lons,lats);
 ages(ages > 1.5*max(chage(nnan))) = nan;

@@ -4,30 +4,33 @@ global F f dGdm res
 % profile on
 cd ~/Documents/MATLAB/CASC_atten/TOMOGRAPHY
 
+
+fprintf('\n=========== RUNNING INVERSION ===========\n\n')
+
 %% ALL PARMS ESTABLISHED IN PARMFILE
 % consider moving frequently changed ones to this script
-parmfile
-fprintf('\n\n NOT CHANGING PARMFILE\n\n')
+    fprintf('>  Establishing parameters\n')
+run('PARMS')
 
 %% read data
-fprintf('\n\nReading in data and station details\n')
+    fprintf('>  Reading in data and station details\n')
 data = read_data(datfile,stafile,par);
 
 %% weight data
-% if par.wtdata
-%     fprintf('Weighting of data being altered by function wtdata\n')
-%     fprintf('CHECK wtdata CAREFULLY TO SEE WHAT IT IS DOING!!\n')    
-%     data.ray.wt = wtdata(data,par);
-% else
-%     fprintf('Weighting of data is uniform\n')
-%     data.ray.wt = ones(size(data.ray.d));
-% end
+if par.wtdata
+    fprintf('Weighting of data being altered by function wtdata\n')
+    fprintf('CHECK wtdata CAREFULLY TO SEE WHAT IT IS DOING!!\n')    
+    data.ray.wt = wtdata(data,par);
+else
+    fprintf('>  No data weighting\n')
+    data.ray.wt = ones(size(data.ray.d));
+end
 
 %% delete bad orids!
 % [ data ] = wipeorids( data );
 
 %% setup tomo geom
-fprintf('Setting up geometry\n')
+    fprintf('>  Setting up geometry\n')
 [ data,par ] = setup_geom( data,par );
 
 %% Crustal correction
@@ -37,13 +40,13 @@ fprintf('Setting up geometry\n')
 
 %% Plot data
 if par.plot_data
+    fprintf('>  Plotting data\n')
     plot_data(data,par,1)
 end
 
-return
+
 %% Make starting model - required to put starting model into parm
 [model,par] = make_start_model(par,data);
-[ideal_model,par] = make_ideal_start_model(par,data);
 
 model_1 = model;
 % model = ideal_model;
@@ -68,14 +71,14 @@ if par.build_K == 0
         error('Loaded K not appropriate for this data... build K again')
     end
 elseif par.build_K == 1
-   [K,data] = make_K( par, data ); 
-   save ('K','K','-v7.3');
-%    data = hitq_fromK(K,data,par);
-%    node = data.node;
-end  
+    [K,data] = make_K( par, data ); 
+    save ('K','K','-v7.3');
+end
+
+
 
 %% Hit quality?
-par = hitmap( data,par,K );
+par = calc_hitcq( data,par,K );
 if par.plot_hitq
     plot_hitq(par);
 end
@@ -91,7 +94,7 @@ if par.synth_test
     synth_test
     return
 end
-
+return
 
 
 %% ==================== DO INVERSION ================= %%

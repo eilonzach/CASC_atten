@@ -66,7 +66,7 @@ for ia = 1:length(test_alphas)
         uj(2*(count-1)+[1 2]) = [is1 is2];
         u (2*(count-1)+[1 2]) = [-1 1]; % delta is value of 2 - value of 1
 
-        [ dtstar,dT,~,misfit,~ ] ...
+        [ dtstar,dT,~,misfit,E ] ...
             = invert_1pair_Aphi_4_dtdtstar(Amat(count,:),phimat(count,:),fmids, wtmat(count,:),amp2phiwt,alpha);
 
         dtstar_pairwise(count) = dtstar;
