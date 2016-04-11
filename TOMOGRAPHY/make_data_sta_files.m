@@ -1,8 +1,8 @@
 %% parse results into large nstas*nevts structures
 clear all
 % if running alone, establish these, otherwise use previous values
-phase = 'S';
-component = 'T';
+phase = 'P';
+component = 'Z';
 
 %% directories 
 % ANTELOPE DB DETAILS
@@ -32,8 +32,8 @@ dtssd = 0.1; % standard minimum standard deviation. Divide this by acor
 %% db data
 [ nstas,stas,slats,slons,selevs,ondate,offdate,staname,statype ] = db_stadata( dbdir,dbnam );
 [ norids,orids,elats,elons,edeps,evtimes,mags ]  = db_oriddata( dbdir,dbnam );
-sages = jdf_crust_age(slats,slons);
-return
+sages = jdf_crust_age(slats,slons,'linear');
+
 %% =================================================================== %%
 %% ============================  STAS  =============================== %%
 %% =================================================================== %%
@@ -82,7 +82,6 @@ end
 fclose(fid) ;   
 
 fprintf('Not doing data\n')
-return
 
 %% =================================================================== %%
 %% ===========================  DATA  ============================== %%

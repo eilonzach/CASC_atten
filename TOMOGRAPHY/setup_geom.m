@@ -76,7 +76,7 @@ zz = [0;par.zz;par.zz(end)];
 for iz = 1:length(par.vz)
     zbo = 0.5*(zz(iz+1)+zz(iz+2));
     zto = 0.5*(zz(iz)+zz(iz+1));
-    par.vz(iz) = quad(@(z)vel_profile(par.PS,z,par.Vavmod,35),zto,zbo)/(zbo-zto);    
+    par.vz(iz) = quad(@(z)vel_profile(par.PS,z),zto,zbo)/(zbo-zto);    
 end
 
 
@@ -84,7 +84,7 @@ par.mvav   = interp1(par.zz,par.vz,par.mz);
 % [~,par] = make_start_model(par); % 
 
 end
-
-function V = vel_profile_integrand(z)
-    V = vel_profile(par.PS,z,par.Vavmod,35);
-end
+% 
+% function V = vel_profile_integrand(z)
+%     V = vel_profile(par.PS,z);
+% end

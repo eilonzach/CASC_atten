@@ -1,5 +1,16 @@
 function [ data ] = read_data( DataFile,StaFile,par )
 
+% check data type
+if par.t_ts == 1
+    if ~any(regexp(DataFile,'dT'))
+        error('Datatype indicated as dT ==> maybe wrong data file')
+    end
+elseif par.t_ts == 2
+    if ~any(regexp(DataFile,'dtstar'))
+        error('Datatype indicated as dtstar ==> maybe wrong data file')
+    end
+end
+
 %=================== input rays =======================================
 %
 fid = fopen(DataFile, 'r');
@@ -9,7 +20,7 @@ fclose(fid);
 ray.pd    = A{1};
 ray.p     = r2d(ray.pd)/6371;
 ray.gcarc = A{2};
-ray.seaz  = A{3};
+ray.baz   = A{3};
 ray.sta   = A{4};
 ray.orid  = A{5};
 ray.elat  = A{6};
@@ -44,16 +55,16 @@ fclose(fid);
 % stas{is}, slats(is), slons(is), selevs(is), statype{is}, IP,trm,...
 %         xrdg,ocage,plate,yr,moh);
 
-stns.sta = strtok(B{1},' ');  
+stns.sta = strtok(B{1},' '); % remove trailing spaces
 stns.lat = B{2};  
 stns.lon = B{3};  
-stns.elv = B{4};
-stns.typ = strtok(B{5},' ');  
+stns.elv = B{4}/1000;  % convert to km
+stns.typ = strtok(B{5},' ');  % remove trailing spaces
 stns.ip  = B{6}; 
 stns.trm = B{7};  
 stns.Xrd = B{8};
 stns.age = B{9};
-stns.plt = strtok(B{10},' ');  
+stns.plt = strtok(B{10},' ');  % remove trailing spaces
 stns.yr  = B{11};
 stns.moh = B{12};
 stns.sed = B{13};

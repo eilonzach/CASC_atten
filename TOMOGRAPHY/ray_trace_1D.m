@@ -1,4 +1,7 @@
-function [rx,ry,rz,Dr] = ray_trace_1D(PS, p, baz, elat,elon,slat, slon,stn_h, par)
+function [rx,ry,rz,Dr] = ray_trace_1D(par, p, baz, slat, slon, selev, ssed)
+% [rx,ry,rz,Dr] = ray_trace_1D(par, p, baz, slat, slon, selev, ssed)
+% 
+% 1D ray tracing function
 
 % determine if potentially turning in model
 max_depth = par.max_z;
@@ -6,10 +9,11 @@ vdz = 5;
 rldr = par.kidd;
 
 % if not turn, else consider turn
-zz1 = [0:vdz:(max_depth-vdz)]';
+zz1 = [-selev:vdz:(max_depth-vdz-selev)]';
 zz2 = [vdz:vdz:max_depth]';
-v1  = vel_profile(PS,zz1,par.Vavmod,stn_h);
-v2  = vel_profile(PS,zz2,par.Vavmod,stn_h);
+
+v1  = vel_profile(par.PS,zz1,slat,slon,selev,false,ssed);
+v2  = vel_profile(par.PS,zz2,slat,slon,selev,false,ssed);
 r1 = 6371-zz1;
 r2 = 6371-zz2;
 zf1 = 6371*log(6371./r1);
@@ -18,7 +22,11 @@ vf1 = (6371./r1).*v1;
 vf2 = (6371./r2).*v2;
 u1 = 1./vf1;
 u2 = 1./vf2; 
+try
 dv = vf2-vf1;
+catch
+    keyboard
+end
 dz = zf2-zf1;
 b = dv ./ dz;
 const_indx = (b == 0);
