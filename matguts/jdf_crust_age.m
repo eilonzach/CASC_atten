@@ -9,7 +9,7 @@ if nargin == 0
     lons = 0;
 end
 if nargin < 3 
-    extrapmethod = 'none';
+    extrapmethod = 'linear';
 end
 
 %% key for chron name ===> age
@@ -82,6 +82,10 @@ while eof==0
 end
 fclose(fid);
 
+%% in the oceans or not?
+coastfile = '~/Documents/MATLAB/CASC_atten/mapdata/m_casccoast.mat';
+coast = load(coastfile);
+land = inpolygon(lons,lats,coast.ncst(:,1),coast.ncst(:,2));
 
 
 
@@ -92,7 +96,7 @@ nnan = ~isnan(chage);
 F = scatteredInterpolant(chlon(nnan),chlat(nnan),chage(nnan),'linear',extrapmethod);
 
 ages = F(lons,lats);
-ages(ages > 1.5*max(chage(nnan))) = nan;
+ages(land) = nan;
 
 chrons = struct('lat',chlat,'lon',chlon,'age',chage);
 

@@ -15,9 +15,8 @@ nstas = data.stn.nstas;
 
 
 %% make H
-% H_damp
-% [H_damp,h_damp]  = make_dampmat(data,par);
-% LH_damp = svds(H_damp,1);
+[H_damp,h_damp]  = make_dampmat(data,par);
+LH_damp = svds(H_damp,1);
 
 % H_smooth
 if par.build_smooth == 0
@@ -39,7 +38,7 @@ Wd  = data.ray.wt.*d;
 LWdGdm = svds(WG,1);
 
 if par.scalereg
-%     A = LWdGdm/LH_damp;
+    A = LWdGdm/LH_damp;
     B = LWdGdm/LH_smth;
 else
     A = 1;
@@ -57,10 +56,12 @@ end
 
 
 %% Make F, f
-F = [WG; par.smooth*B*H_smth];
-% f = [Wres;par.damp*A*h_damp;zeros(size(H_smth,1),1)];
-f = [Wd;zeros(size(H_smth,1),1)];
+F = [WG; par.damp*A*H_damp;par.smooth*B*H_smth];
+f = [Wd;par.damp*h_damp; zeros(size(H_smth,1),1)];
+% f = [Wd;                zeros(size(H_smth,1),1)];
 
-
+pt_k = [45,-125,80]
+[ r_k ] = Rmatrix( F, par, pt_k )
+pause
 end
 

@@ -1,7 +1,7 @@
-function [ dtstar_pref,dT_pref,alpha_pref,alpha_misfits,dtstars,dTs,A0s, error_Amp, error_phi ] ...
-    = allin1invert_Aphis_4_STA_dtdtstar_alpha( Amat,phimat,fmids,test_alphas,wtmat,amp2phiwt )
-%[ dtstar_pref,dT_pref,alpha_pref,alpha_misfits,dtstars,dTs,A0s, E ] ...
-%     = allin1invert_Aphis_4_STA_dtdtstar_alpha( Amat,phimat,freqs,test_alphas,wtmat,amp2phiwt )
+function [ dtstar_pref,dT_pref,A0_pref,alpha_pref,alpha_misfits,dtstars,dTs,A0s,misfits_amp,misfits_phi ] ...
+    = invert_allin1_Aphis_4_STA_dtdtstar_alpha( Amat,phimat,fmids,test_alphas,wtmat,amp2phiwt )
+%[ dtstar_pref,dT_pref,A0_pref,alpha_pref,alpha_misfits,dtstars,dTs,A0s, misfits_amp, misfits_phi ] ...
+%     = invert_allin1_Aphis_4_STA_dtdtstar_alpha( Amat,phimat,fmids,test_alphas,wtmat,amp2phiwt )
 %   Script to simultaneously invert pairwise frequency and phase spectra
 %   for dtstar and dT at a whole array of stations, looping over a range of
 %   alpha values, solving for the best-fitting alpha and the corresponding
@@ -54,8 +54,8 @@ G_phi = spalloc(Npair*Nf,3*Nstas,4*Nf*Npair);
 
 alpha_misfits = zeros(Na,1);
 
-error_Amp = zeros(Npair,Nf,Na);
-error_phi = zeros(Npair,Nf,Na);
+misfits_amp = zeros(Npair,Na);
+misfits_phi = zeros(Npair,Na);
 
 for ia = 1:length(test_alphas)
     alpha = test_alphas(ia);
@@ -74,20 +74,20 @@ for ia = 1:length(test_alphas)
     count = 0;
     for is1 = 1:Nstas
     for is2 = is1+1:Nstas
-    count = count+1; % count is the same as the handshake #
-    
-    % slot into G matrices
-    yind = [1:Nf] + (count-1)*Nf;
-    
-    G_Amp(yind,is1) = -1;
-    G_Amp(yind,is2) = 1;
-    G_Amp(yind,Nstas+is1) = -Ax;
-    G_Amp(yind,Nstas+is2) = Ax;
-    
-    G_phi(yind,Nstas+is1) = -Px;
-    G_phi(yind,Nstas+is2) = Px;
-    G_phi(yind,2*Nstas+is1) = -1;
-    G_phi(yind,2*Nstas+is2) = 1;
+        count = count+1; % count is the same as the handshake #
+
+        % slot into G matrices
+        yind = [1:Nf] + (count-1)*Nf;
+
+        G_Amp(yind,is1)         = -1;
+        G_Amp(yind,is2)         = 1;
+        G_Amp(yind,Nstas+is1)   = -Ax;
+        G_Amp(yind,Nstas+is2)   = Ax;
+
+        G_phi(yind,Nstas+is1)   = -Px;
+        G_phi(yind,Nstas+is2)   = Px;
+        G_phi(yind,2*Nstas+is1) = -1;
+        G_phi(yind,2*Nstas+is2) = 1;
     end 
     end
 
@@ -113,23 +113,27 @@ for ia = 1:length(test_alphas)
     
     dtstars(:,ia) = m(Nstas+ [1:Nstas]);
     dTs(:,ia) = m(2*Nstas + [1:Nstas]);
-    A0s(:,ia) = m(1:Nstas);
+    A0s(:,ia) = exp(m(1:Nstas));
 
     E = [G_all*m - d_all];
     
-    error_Amp(:,:,ia) = reshape(E(           [1:Npair*Nf]),Npair,Nf);
-    error_phi(:,:,ia) = reshape(E(Npair*Nf + [1:Npair*Nf]),Npair,Nf);
-
     alpha_misfits(ia) = E'*spdw_all*E;
+    
+    misfits_amp(:,ia) = sum(reshape(wts.*E(           [1:Npair*Nf]).^2,Nf,Npair))';
+    misfits_phi(:,ia) = sum(reshape(wts.*E(Npair*Nf + [1:Npair*Nf]).^2,Nf,Npair))';
 end
 
 %% minimise misfit
 alpha_pref = test_alphas(mindex(alpha_misfits));
 dtstar_pref = dtstars(:,mindex(alpha_misfits));
 dT_pref = dTs(:,mindex(alpha_misfits));
+A0_pref = A0s(:,mindex(alpha_misfits));
 
 figure(77), clf;
 plot(test_alphas,alpha_misfits,'-o')
+xlabel('F-dependency ($\alpha$)','interpreter','latex','FontSize',22)
+ylabel('Global misfit, ($\chi^2$)','interpreter','latex','FontSize',22)
+set(gca,'FontSize',14,'box','on')
 
 
 

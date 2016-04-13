@@ -14,7 +14,7 @@ par(1).t_ts = 2;         % 1 for dT, 2 for dtstar
 %% plotting parms - zero for speed
 par.plot_crustcorr  = 0;
 par.plot_data       = 0;
-par.plot_inmodel    = 0;
+par.plot_inmodel    = 1;
 par.plot_synout     = 1;
 par.plot_Zslices    = 0;
 par.plot_hitq       = 1;
@@ -26,7 +26,7 @@ par.plot_everyNtime = 0; % N>0 will plot each N iterations
 REBUILD             = 0;
 par.redo_crust_corr = REBUILD; % <== REDO IF DATA/MODEL CHANGES
 par.build_K         = REBUILD; % <== REDO IF DATA/MODEL CHANGES
-par.build_smooth    = 0; % <== REDO IF DATA/MODEL CHANGES
+par.build_smooth    = REBUILD; % <== REDO IF DATA/MODEL CHANGES
 par.solver          = 'lsqr'; % 'lsqr' or 'bicg'
 
 par.synth_test      = 1;  % this will stop actual inversion
@@ -35,18 +35,18 @@ par.synth_noisy     = 1;  % option to include 'realistic' noise in synthetic dat
 par.niter           = 10; %5
 par.stopiter        = 0.00; %if fractional res reduction does not exceed this, cease
 par.crust_corr      = 0; % option to do crustal correction
-par.wtdata          = 1; % extra QCs found in wtdata.m function
+par.wtdata          = 0; % extra QCs found in wtdata.m function
 
-par.force2D         = 0; %0.2% 0=no, 1=yes, 0<frac<1=force 2D for first frac of runs
+par.age_smooth      = 1; % option to smooth points together based on age bins
 
-par.squeeze         = 0.2; %0.2% 0=no, 1=yes, 0<frac<1=force 2D for first frac of runs
+par.squeeze         = 1; % 0=no, 1=yes, 0<frac<1=force 2D for first frac of runs
 par.zsqz            = 175; %180% squeezing depth in km, if -ive then sqz to below this depth
 
 par.saveopt         = 1;
 
 % regularisation parms
 par.damp            = 3; %3% scaling for whole damp mat: more damping parms found in dampmat.m
-par.smooth          = 3;  %3%  scaling for whole smth mat: good result with 1 - 
+par.smooth          = 1;  %3%  scaling for whole smth mat: good result with 1 - 
     par.smth_zvh    = 0.3;
 
 par.scalereg        = 0; %       option to scale regularisation matrices in make_F_f
@@ -59,7 +59,7 @@ par.scalereg        = 0; %       option to scale regularisation matrices in make
     mstruct = defaultm( mstruct ); 
     par.map_proj = mstruct;
  
-    par.dh      = 40; %30   % horizontal spaces for nodes
+    par.dh      = 50; %30   % horizontal spaces for nodes
     par.dh_max  = 80; %80   % horizontal spacing to which it scales, at twice array aperture
 
     par.dz      = 30; %35   % vertical spacing for nodes beneath moho
@@ -86,11 +86,10 @@ par.scalereg        = 0; %       option to scale regularisation matrices in make
     sym.awy = [ 80	180      80]           ;% vector of y-widths for anomalies (km)
     sym.awz = [100	130      70]           ;% vector of z-widths for anomalies (km)
 
-    sym.adv = [ -6	  0       4]           ;% vector of v pertubations of anomalies (percent)
-    sym.aa  = [  5	  0      -4]           ;% vector of anisotropy values of anomalies (percent)
+    sym.adval=[ -6	  0       4]           ;% vector of pertubations of anomalies (percent)
     
     % checker structure
-    sym.dq = 0.05;
+    sym.dval = 5;                        % in percent!
         
     sym.noise = 0.1;                     % 0.05 % std. of gaussian perturbations to data values (s)
     

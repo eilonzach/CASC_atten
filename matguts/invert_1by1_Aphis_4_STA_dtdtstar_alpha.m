@@ -1,7 +1,7 @@
-function [ dtstar_pref,dT_pref,alpha_pref,alpha_misfits,dtstars,dTs ] ...
-    = invert_1by1_Aphis_4_STA_dtdtstar_alpha( Amat,phimat,fmids,test_alphas,wtmat,amp2phiwt )
-%[ dtstar_pref,dT_pref,alpha_pref,alpha_misfits,dtstars,dTs,A0s, E ] ...
-%     = allin1invert_Aphis_4_STA_dtdtstar_alpha( Amat,phimat,freqs,test_alphas,wtmat,amp2phiwt )
+function [ dtstar_pref,dT_pref,A0_pref,alpha_pref,alpha_misfits,dtstars,dTs,A0s,misfits_amp,misfits_phi ] ...
+    = invert_1by1_Aphis_4_STA_dtdtstar_alpha  ( Amat,phimat,fmids,test_alphas,wtmat,amp2phiwt )
+%[ dtstar_pref,dT_pref,A0_pref,alpha_pref,alpha_misfits,dtstars,dTs,A0s, misfits_amp, misfits_phi ] ...
+%     = allin1invert_Aphis_4_STA_dtdtstar_alpha ( Amat,phimat,freqs,test_alphas,wtmat,amp2phiwt )
 %   Script to simultaneously invert pairwise frequency and phase spectra
 %   for dtstar and dT at a whole array of stations, looping over a range of
 %   alpha values, solving for the best-fitting alpha and the corresponding
@@ -39,8 +39,9 @@ Na = length(test_alphas);
 
 dtstars = zeros(Nstas,Na);
 dTs = zeros(Nstas,Na);
-
-alpha_misfits = zeros(Na,1);
+A0s = zeros(Nstas,Na);
+misfits_amp = zeros(Npair,Na);
+misfits_phi = zeros(Npair,Na);
 
 % loop on alphas
 for ia = 1:length(test_alphas)
@@ -55,8 +56,8 @@ for ia = 1:length(test_alphas)
 
     dtstar_pairwise = zeros(Npair,1);
     dT_pairwise = zeros(Npair,1);
+    lgA0_pairwise = zeros(Npair,1);
     misfitnormed_pairwise = zeros(Npair,1);
-
 
     for is1 = 1:Nstas
     for is2 = is1+1:Nstas
@@ -66,11 +67,14 @@ for ia = 1:length(test_alphas)
         uj(2*(count-1)+[1 2]) = [is1 is2];
         u (2*(count-1)+[1 2]) = [-1 1]; % delta is value of 2 - value of 1
 
-        [ dtstar,dT,~,misfit,E ] ...
+        [ dtstar,dT,A0,misfit,~,m_amp,m_phi ] ...
             = invert_1pair_Aphi_4_dtdtstar(Amat(count,:),phimat(count,:),fmids, wtmat(count,:),amp2phiwt,alpha);
 
         dtstar_pairwise(count) = dtstar;
         dT_pairwise(count) = dT;
+        lgA0_pairwise(count) = log(A0);
+        misfits_amp(count,ia) = m_amp;
+        misfits_phi(count,ia) = m_phi;
         misfitnormed_pairwise(count) = misfit./sum(wtmat(count,:)~=0); % weight  will be  1./misfit, normalised by number of datapoints
     end 
     end
@@ -84,6 +88,7 @@ for ia = 1:length(test_alphas)
     G(Npair+1,:) = 1;
     dtstar_pairwise(Npair+1,:)=0;
     dT_pairwise(Npair+1,:)=0;
+    lgA0_pairwise(Npair+1,:)=0;
     W = diag([W;1]);
 
     % kill bad pairs
@@ -91,28 +96,33 @@ for ia = 1:length(test_alphas)
     G(isbd,:) = [];
     dtstar_pairwise(isbd) = [];
     dT_pairwise(isbd) = [];
+    lgA0_pairwise(isbd) = [];
     W(isbd,:) = []; W(:,isbd) = [];
 
     % results
     dtstars(:,ia) = (G'*W*G)\G'*W*dtstar_pairwise;
     dTs(:,ia) = (G'*W*G)\G'*W*dT_pairwise;
-    
-    E = [G*dtstars(:,ia) - dtstar_pairwise;
-         G*dTs(:,ia)     - dT_pairwise];
-
-    alpha_misfits(ia) = E'*diag([diag(W);diag(W)])*E;
-
+    A0s(:,ia) = exp((G'*W*G)\G'*W*lgA0_pairwise);
     
 
 end %loop on alphas
+
+alpha_misfits = amp2phiwt*sum(misfits_amp,1) + sum(misfits_phi,1);
+alpha_misfits = alpha_misfits(:);
+
+
 
 %% minimise misfit
 alpha_pref = test_alphas(mindex(alpha_misfits));
 dtstar_pref = dtstars(:,mindex(alpha_misfits));
 dT_pref = dTs(:,mindex(alpha_misfits));
+A0_pref = A0s(:,mindex(alpha_misfits));
 
 figure(77), clf;
 plot(test_alphas,alpha_misfits,'-o')
+xlabel('F-dependency ($\alpha$)','interpreter','latex','FontSize',22)
+ylabel('Global misfit, ($\chi^2$)','interpreter','latex','FontSize',22)
+set(gca,'FontSize',14,'box','on')
 
 
 

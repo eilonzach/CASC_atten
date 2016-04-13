@@ -4,7 +4,7 @@
 % This script is attempts to do this with two traces that have passed
 % through different Q and V material, to see how the velocity and Q
 % differences trade off, and how the delta-tstar works.
-% clear all
+clear all
 close all
 addpath('matguts')
 % parms
@@ -14,12 +14,12 @@ T = 2e3;
 Q0_1 = 101;
 c0_1 = 3.95e3; % reference velocity in km/s
 %% trace 2 Q & V - slower c0 and more attenuated
-Q0_2 = 20;
+Q0_2 = 40;
 c0_2 = 3.80e3; % reference velocity in km/s
 
 L = 200e3;
 
-alpha = 0.6;
+alpha = 0.3;
 
 fmax = .2;
 
@@ -161,6 +161,8 @@ end
 ff = logspace(log10(fmids(end)),log10(fmids(1)),40);
 ww = 2*pi*ff;
 
+plot_AmpPhi_fit(As,phis,fmids,[],dtstar,dT,0,alpha,38);
+
 %% plot spectra and fits
 figure(3), clf, set(gcf,'pos',[600 10 500,700])
 subplot(211), hold on
@@ -173,7 +175,7 @@ xlabel('freq\^(1-a)','FontSize',18), ylabel('log(Amp)','FontSize',18)
 
 subplot(212), hold on
 plot(fmids.^(-alpha),phis,'or')
-plot(ff.^(-alpha),dtstar*xx*(2*pi*ff).^(-alpha) + dT,'r--'), 
+plot(ff.^(-alpha),dtstar*xx*(2*pi*ff).^(-alpha) + dT,'b--'), 
 set(gca,'Xscale','linear')
 xlabel('freq\^(-a)','FontSize',18), ylabel('phase-shift (s)','FontSize',18)
 
@@ -193,6 +195,7 @@ plot(ff.^(-alpha), (2*pi).^(-alpha)*ff.^(-alpha).*(...
      + xx*xx*L/c0_2/Q0_2/Q0_2 - xx*xx*L/c0_1/Q0_1/Q0_1 ...
      + xx*xx*xx*L/c0_2/Q0_2/Q0_2/Q0_2 - xx*xx*xx*L/c0_1/Q0_1/Q0_1/Q0_1...
      ) + dT,'g--'), 
+
 % estimates of dtstar from the data
 ind0 = min(find(fmids<=fmax)); %#ok<MXFND>
 fo1 = fit(fmids(ind0:end).^(1-alpha),log(As(ind0:end)),'poly1');
@@ -231,9 +234,10 @@ dT_xcor = diff(xcortimes([qdatwc1,qdatwc2], dt, T/2, 10,0)); % ignoring anelasti
 % estimate from joint inversion of both
 % [ dtstar_e3,dT_e3,A0_e3 ] = invert_Aphi_4_dtdtstar( As(ind0:end),phis(ind0:end),fmids(ind0:end))
 [ dtstar_e3,dT_e3,A0_e3,misfit, E ] =...
-    invert_Aphi_4_dtdtstar_testing( As(ind0:end),phis(ind0:end),fmids(ind0:end),[],5,.25);
+    invert_1pair_Aphi_4_dtdtstar( As(ind0:end),phis(ind0:end),fmids(ind0:end),[],5,alpha);
 dtstar_e3
-
+plot_AmpPhi_fit(As,phis,fmids,[],dtstar_e3,dT_e3,A0_e3,alpha,38);
+return
 
 figure(3)
 subplot(211), hold on

@@ -7,7 +7,7 @@ addpath('matguts')
 %% parameters
 ifsave = 1;
 
-method = 'xcorr';% 'comb' or 'xcorr' 
+method = 'comb';% 'comb' or 'xcorr' 
 
 ifOBSonly = false;
 

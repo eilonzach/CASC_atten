@@ -1,6 +1,6 @@
 % cycle through events and calculate spectral ratios for all stations
 % pause
-% clear all
+clear all
 close all
 cd /Users/zeilon/Documents/MATLAB/CASC_atten
 addpath('matguts')
@@ -39,13 +39,15 @@ parms.wind.taperx = 0.1;
 parms.qc.minacor = 0.5;
 parms.qc.maxphi = 5;
 
-parms.inv.amp2phiwt = 2;
+parms.inv.amp2phiwt = 5;
 parms.inv.fmin = 0.15;
 parms.inv.fmax = 0.5; % nominal - reset below according to fcross
 parms.inv.corr_c_skip = true;
 parms.inv.ifwt = true;
 
 parms.inv.alpha = 0.25;
+
+test_alphas = [0:0.05:0.5];
 
 %% directories 
 % ANTELOPE DB DETAILS
@@ -67,7 +69,7 @@ dbclose(db);
 
 obsstr = ''; if ifOBSonly, obsstr = 'OBS_'; end
 
-for ie = 230:230 % 44:norids % loop on orids
+for ie = 298:298 % 44:norids % loop on orids
 %     if  mags(ie)<6.9, continue, end
     tic
     fprintf('\n Orid %.0f %s \n\n',orids(ie),epoch2str(evtimes(ie),'%Y-%m-%d %H:%M:%S'))
@@ -143,8 +145,11 @@ for ie = 230:230 % 44:norids % loop on orids
         fprintf('got data\n')
     end % loop on stas
     
+    % find OBS stas
+    isob = zeros(size(eqar)); for is = 1:length(eqar), isob(is) = ~isempty(which_OBS(eqar(is).sta)); end, 
+    
     % ONLY USE GOOD TRACES
-    indgd = 1:size(eqar);
+    indgd = 1:length(eqar);
     indgd(mean(abs(all_dat0(:,indgd)))==0)     = []; % kill zero traces
     indgd(mean(abs(all_dat0(:,indgd)))<1e-12)     = []; % kill zero traces
     indgd(isnan(mean(abs(all_dat0(:,indgd))))) = []; % kill nan traces
@@ -162,33 +167,29 @@ for ie = 230:230 % 44:norids % loop on orids
     Amat = pairwise.As;
     phimat = pairwise.phis;
     wtmat = double(pairwise.inds).*pairwise.wts;
-    % test_alphas = [0];
-    parms.inv.amp2phiwt = 5;
-
-    return
-    %% use pairwise 1by1 then lsqr on each evt's dtstar & dT to get sta values
-    [ delta_tstar_pref,delta_T_pref,alpha_pref,alpha_misfits,dtstars,dTs ] ...
-        = invert_1by1_Aphis_4_STA_dtdtstar_alpha(Amat,phimat,fmids,test_alphas,wtmat,parms.inv.amp2phiwt );
-        
-    %% use pairwise to make 1 global inversion for sta dtstar & dT
-    [ delta_tstar_pref,delta_T_pref,alpha_pref,alpha_misfits,dtstars,dTs,A0s, Eamp, Ephi ] ...
-        = invert_allin1_Aphis_4_STA_dtdtstar_alpha(Amat,phimat,fmids,test_alphas,wtmat,parms.inv.amp2phiwt );
     
+    [ delta_tstar_pref,delta_T_pref,A0_pref,alpha_pref,alpha_misfits ] ...
+        = calc_fdependent( Amat,phimat,fmids,test_alphas,wtmat,parms.inv.amp2phiwt,1,['Orid ',num2str(orids(ie))] );
+    continue
+    
+    %% Assign preferred values
     delta_tstar_use = delta_tstar_pref;
     delta_T_use = delta_T_pref;
     parms.inv.alpha = alpha_pref;
-    
+
     %% ---------------------- STORE RESULTS -----------------------
     % STORE RESULTS
     fprintf('Recording results in arrival structure...')
     % prep eqar to receive new fields
     eqar(1).dtstar_comb = []; 
     eqar(1).dT_comb = []; 
+    eqar(1).alpha_comb = []; 
 %     eqar(1).stds_comb = []; 
     eqar(1).par_dtstar_comb = [];
                       
     eqar(indgd) =  dealto(eqar(indgd),'dtstar_comb',delta_tstar_use);
     eqar(indgd) =  dealto(eqar(indgd),'dT_comb',delta_T_use);
+    eqar(indgd) =  dealto(eqar(indgd),'alpha_comb',alpha_pref);
 %     eqar(indgd) =  dealto(eqar(indgd),'stds_comb',std_dtstar_comb);
     eqar(indgd) =  dealto(eqar(indgd),'par_dtstar_comb',parms);
 
@@ -199,6 +200,7 @@ for ie = 230:230 % 44:norids % loop on orids
     
 	%% -------------------------- PLOTS ---------------------------
     if ifplot
+    compare_dtstar_absAmp
     plot_ATTEN_TandF_domain_COMB( eqar )
     end % ifplot
 

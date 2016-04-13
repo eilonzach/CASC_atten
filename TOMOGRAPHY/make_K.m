@@ -49,15 +49,19 @@ for iray = 1:N       % or switch to parfor to speed up
     %     rv = vel_profile(par.PS,rz,slats(snum), slons(snum) ,selvs(snum), false,sseds(snum));
     %     rt = diff(dr)./midpts(rv);
     %     sum(rt)
-    
-    mv = vel_profile(par.PS,mz);
+    mv = vel_profile(par.PS,mz+selvs(snum));
     rt = lr./mv; % travel time in each segment
     
     % function ray_nodes to find nodes potentially within RF1
     [n_indx, n_lens ] = ray_nodes_box(mx,my,mz,lr,par);
     
-    % KERNEL VALUE IS THE TRAVEL TIME: LENGTH DIVIDED BY VELOCITY
-    n_vals = n_lens./par.mvav(n_indx);
+    if par.t_ts == 1 % if velocity inversion        
+        % KERNEL VALUE IS THE PATH LENGTH 
+        n_vals = n_lens;
+    elseif par.t_ts == 2 % if q inversion
+        % KERNEL VALUE IS THE TRAVEL TIME: LENGTH DIVIDED BY VELOCITY
+        n_vals = n_lens./par.mvav(n_indx);      
+    end
     
 % %----------------- comment out if parallelised -----------------
 %     %% PLOT RAYS

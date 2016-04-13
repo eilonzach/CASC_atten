@@ -69,6 +69,7 @@ trm = {'FN01A','FN05A','FN07A','FN08A',...
        'J41C','J49C','J57C',...
        };
    
+   
 switch sta
     case whoi
         IP = 'WHOI';

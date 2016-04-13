@@ -1,25 +1,25 @@
-function [ checker_model ] = make_checker_model(par,dq)
+function [ checker_model ] = make_checker_model(par,dval)
 
 mf = zeros(par.ny,par.nx,par.nz);
 
 
 %% horiz spacing for upper layers
-mfx = [ 0 1 1 1 0 -1 -1 -1 ];
+mfx = [ 0 0 1 1 1 1 0 0 -1 -1 -1 -1];
 mfx = repmat(mfx,1,30);
 mfx1 = mfx(1:par.nx);
 
-mfy = [ 0 1 1 1 0 -1 -1 -1 ]';
+mfy = [ 0 0 1 1 1 1 0 0 -1 -1 -1 -1]';
 mfy = repmat(mfy,30,1);
 mfy1 = mfy(1:par.ny);
 
 mfxy1 = mfy1*mfx1; % 2D grid
 
 %% horiz spacing for lower layers
-mfx = [ 0 1 1 1 0 -1 -1 -1];
+mfx = [ 0 0 1 1 1 1 0 0 -1 -1 -1 -1];
 mfx = repmat(mfx,1,30);
 mfx2 = mfx(1:par.nx);
 
-mfy = [ 0 1 1 1 0 -1  -1 -1]';
+mfy = [ 0 0 1 1 1 1 0 0 -1 -1 -1 -1]';
 mfy = repmat(mfy,30,1);
 mfy2 = mfy(1:par.ny);
 
@@ -40,11 +40,11 @@ for iz = 1:par.nz
     mf(:,:,iz) = mfxy*mfz(iz);
 end
 
-mdq = dq*mf(:);
+mval = (0.01*dval)*mf(:); % 0.01 to convert from percent
 
 
 %add a little random noise
-mdq = mdq + random('norm',0,0.00001,size(mdq));
+mval = mval + random('norm',0,0.00001,size(mval));
 
-checker_model.mdq = mdq;
+checker_model.mval = mval;
    

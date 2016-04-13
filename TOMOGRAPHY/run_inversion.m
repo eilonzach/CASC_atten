@@ -60,19 +60,21 @@ if par.plot_inmodel && ~par.synth_test
     end
 end
 
-% % special starting values
-% model.sstatic(strcmp(data.stn.sta,'J')) = 1; % slow sediments?
-% model.sstatic(strcmp(data.stn.sta,'H')) = 1; % slow sediments?
-
 %% =========== Make Kernel =============================================
+if par.t_ts == 1
+    Kfile = 'K_v';
+elseif par.t_ts == 2
+    Kfile = 'K_q';
+end
+
 if par.build_K == 0
-    load K K;
-    if length(K.n_indx)~=data.ray.nrays
+    load(Kfile);
+    if length(K.n_indx)~=data.ray.nrays || max(K.n_indx{1}) > par.nmodel
         error('Loaded K not appropriate for this data... build K again')
     end
 elseif par.build_K == 1
     [K,data] = make_K( par, data ); 
-    save ('K','K','-v7.3');
+    save (Kfile,'K','-v7.3');
 end
 
 
@@ -98,16 +100,6 @@ return
 
 
 %% ==================== DO INVERSION ================= %%
-allres = zeros(par.niter,1);
-wtres  = zeros(par.niter,1);
-tabsres= zeros(par.niter,1);
-dtsres = zeros(par.niter,1);
-vr = struct('all',zeros(par.niter,1),'tdiff',zeros(par.niter,1),'dT',zeros(par.niter,1));
-wvr = struct('all',zeros(par.niter,1),'tdiff',zeros(par.niter,1),'dT',zeros(par.niter,1));
-
-for kk = 1:par.niter
-par.iter=kk;
-fprintf('\nIteration number %u\n',kk)
 tic
 %% Predicted data
 gm   = make_gm( K,data,model,par ); 
@@ -147,23 +139,6 @@ if kk>1
     fprintf('After iter %.0f Weighted variance reduction = %.2f %%\n',kk-1,wvr.all(kk-1));
 end
 
-% END if norm res is small enough
-figure(1);
-plot(allres,'o-k');
-hold on
-plot(tabsres,'o-r');
-plot(dtsres,'o-b');
-hold off
-title('k=all,r=tabs,b=dts')
-xlim([1 max([kk+1,10])])
-pause(0.001)
-
-if kk>1
-    if abs(allres(kk)-allres(kk-1))/abs(allres(kk-1)) < par.stopiter
-        fprintf('\n NO CHANGE IN RES... STOPPING\n')
-        break
-    end
-end
 
 %% ADD REGULARISATION
 [ F,f ] = make_F_f( dGdm,res,data,par );
@@ -182,23 +157,8 @@ end
 %% UPDATE
 [ model ] = model_update( model, dm, par.nmodel,data.evt.nevts,data.stn.nstas);
 
-%% Plot changes
-if par.plot_everyNtime > 0
-if mod(kk-1,par.plot_everyNtime)==0
-    plot_results_info(par,model,dm,data,d_use,res)
-    
-    [plot_model] = conv2plotable(model,par);
-    plot_basic(plot_model,par,1,0)
-    
-    pause(0.01)
-end
-end
-
 toc
-par.build_K         = 0;
-par.build_smooth    = 0;
 
-end % loop on inversion iterations
 fprintf('\nResults summary:\n')
 % profile viewer
 

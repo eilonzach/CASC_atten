@@ -77,11 +77,12 @@ plot(fzs(:,1),fzs(:,2),'--k','Linewidth',1) % transforms
 %      num2str([-100:100:700]'),'FontWeight','bold')
 
 %% plot isochrons
-% [chgrdX,chgrdY] = meshgrid(linspace(lonlims(1),lonlims(2),1000),linspace(latlims(1),latlims(2),1000)); 
+% [chgrdX,chgrdY] = meshgrid(linspace(lonlims(1),-123,50),linspace(40,latlims(2),60)); 
 % [ chgrdage,chrons,F ] = jdf_crust_age(chgrdY,chgrdX);
-% chtick = unique(chrons.age(~isnan(chrons.age)));
-% contour(chgrdX,chgrdY,chgrdage,chtick)
-
+% % chtick = unique(chrons.age(~isnan(chrons.age))); % plot chrons
+% chtick = 1:12; % plot Ma
+% contour(chgrdX,chgrdY,chgrdage,chtick,'LineWidth',2,'linestyle','--')
+% colormap(hot)
 
 xlim(lonlims)
 ylim(latlims)

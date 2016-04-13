@@ -9,7 +9,7 @@ ifsave = 1;
 
 method = 'xcorr';% 'comb' or 'xcorr' 
 
-ifOBSonly = true;
+ifOBSonly = false;
 
 plotsize = 800;
 scale = 0.35; % length of lines
@@ -28,7 +28,6 @@ dbnam = 'cascBIGdb';
 datadir = '/Volumes/DATA/CASCADIA/DATA/'; % needs final slash
 % RESULTS DIRECTORY
 resdir = '~/Documents/MATLAB/CASC_atten/results/'; % needs final slash
-addpath('~/Documents/MATLAB/seizmo-master/cmap/');
 
 cmap = blue2red; 
 close all
@@ -46,7 +45,7 @@ obsstr = ''; if ifOBSonly, obsstr = 'OBS_'; end
 % results_parse
 
 %% Get results
-for ip = 2:length(phases)
+for ip = 1:length(phases)
 phase = phases{ip};
 component = components{ip};
 tdflim = ip*[-1.1 1.1];

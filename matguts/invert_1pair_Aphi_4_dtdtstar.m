@@ -1,5 +1,5 @@
-function [ dtstar,dT,A0,misfit, E ] = invert_1pair_Aphi_4_dtdtstar( As,phis,freqs,wts,amp2phiwt,alpha)
-%[ dtstar,dT,A0,misfit, E ] = invert_Aphi_4_dtdtstar( As,phis,freqs,wts,amp2phiwt,alpha)
+function [ dtstar,dT,A0,misfit, E, misfit_amps,misfit_phis ] = invert_1pair_Aphi_4_dtdtstar( As,phis,freqs,wts,amp2phiwt,alpha)
+% [ dtstar,dT,A0,misfit, E, misfit_amps,misfit_phis ] = invert_1pair_Aphi_4_dtdtstar( As,phis,freqs,[wts=1],[amp2phiwt=1],[alpha=0])
 %   Script to invert frequency and phase spectra for dtstar and dT
 % 
 % if Q is frequency independent (alpha==0)
@@ -49,9 +49,8 @@ end
 G(N+[1:N],3) = 1;
     
 % weight
-wts = [amp2phiwt*wts;wts];
-dw = diag(wts)*d;
-Gw = diag(wts)*G;
+dw = diag([amp2phiwt*wts;wts])*d;
+Gw = diag([amp2phiwt*wts;wts])*G;
 
 m = (Gw'*Gw)\Gw'*dw;    
 
@@ -59,9 +58,20 @@ dtstar = m(2);
 dT = m(3);
 A0 = exp(m(1));
 
-E = [G*m - d];
+lnApred = G(1:N,:)*m;
+Apred = exp(lnApred);
 
-misfit = E'*diag(wts)*E;
+phipred = G(1+N:2*N,:)*m;
+
+Ea = Apred - As;        % amplitudes error (in abs amp space, not log!
+Ep = phipred - phis;    % phis error
+
+E = [Ea;Ep]; % error vector
+
+misfit = E'*diag([wts;wts])*E; % report weighted misfit (no amp2phiwt)
+
+misfit_amps = Ea'*diag(wts)*Ea;
+misfit_phis = Ep'*diag(wts)*Ep;
 
 
 

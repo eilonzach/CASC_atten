@@ -43,12 +43,24 @@ mdx = reshape(X,numel(X),1);
 mdy = reshape(Y,numel(X),1);
 mdz = reshape(Z,numel(X),1);
 
+%% ages
+lola = mln + 1i*mlt; % all lon,lat points
+[ulola,~,ind] = unique(lola); % only do for unique ones, attrib later
+ages = jdf_crust_age(imag(ulola),real(ulola));
+ages(ages>12 | ages<0) = nan;
+mage = ages(ind);
+mage(mlt < 40 | mlt > 50 | mln > -121) = nan;
+
+
+
 %% save into par structure
 par.mx = mx;
 par.my = my;
 par.mz = mz;
 par.mlt = mlt;
 par.mln = mln;
+par.mln = mln;
+par.mage = mage;
 par.mdx = mdx;
 par.mdy = mdy;
 par.mdz = mdz;

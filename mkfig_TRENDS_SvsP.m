@@ -254,10 +254,10 @@ stav_dTp = nan(nstas,1);
 stav_dTs = nan(nstas,1);
 stav_dtstarp = nan(nstas,1);
 stav_dtstars = nan(nstas,1);
-[~,ia,ib] = intersect(stav_stas,stavR_dTp.stas); stav_dTp(ia) = stavR_dTp.dT_stav(ib); 
-[~,ia,ib] = intersect(stav_stas,stavR_dTs.stas); stav_dTs(ia) = stavR_dTs.dT_stav(ib); 
-[~,ia,ib] = intersect(stav_stas,stavR_dtstarp.stas); stav_dtstarp(ia) = stavR_dtstarp.dtstar_stav(ib); 
-[~,ia,ib] = intersect(stav_stas,stavR_dtstars.stas); stav_dtstars(ia) = stavR_dtstars.dtstar_stav(ib); 
+[~,ia,ib] = intersect(stav_stas,stavR_dTp.stas); stav_dTp(ia) = stavR_dTp.dT(ib); 
+[~,ia,ib] = intersect(stav_stas,stavR_dTs.stas); stav_dTs(ia) = stavR_dTs.dT(ib); 
+[~,ia,ib] = intersect(stav_stas,stavR_dtstarp.stas); stav_dtstarp(ia) = stavR_dtstarp.dtstar(ib); 
+[~,ia,ib] = intersect(stav_stas,stavR_dtstars.stas); stav_dtstars(ia) = stavR_dtstars.dtstar(ib); 
 
 stav_ydT  = stav_dTp~=0   & stav_dTs~=0   & ~isnan(stav_dTp)   & ~isnan(stav_dTs)   & abs(stav_dTp)<3   & abs(stav_dTs)<5;
 stav_ydts = stav_dtstarp~=0 & stav_dtstars~=0 & ~isnan(stav_dtstarp) & ~isnan(stav_dtstars) & abs(stav_dtstarp)<3 & abs(stav_dtstars)<5;
@@ -334,7 +334,7 @@ ylabel('Sta-Av $S$-wave $\Delta t^*$ (s)','FontSize',20,'interpreter','latex')
 if ifsave
 save2pdf(12,'dtstars_vs_dtstarp_stav','figs'); pause(0.1)
 end
-return
+
 %% PLOT STAV S TT vs. T-STAR
 figure(13), clf, set(gcf,'position',[300 200 500 500]), hold on
 scatter(stav_dTs(stav_yS),stav_dtstars(stav_yS),40,'k','o','LineWidth',1.5)

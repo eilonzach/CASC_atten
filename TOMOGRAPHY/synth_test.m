@@ -1,79 +1,47 @@
 fprintf('\nSTARTING SYNTHETIC TEST\n')
 
-%% setup synthetic model
+%% ================  setup synthetic model  ================  
 synth_model = make_synth_model(par);
 
 if par.plot_inmodel
     [plot_simodel] = conv2plotable(synth_model,par);
-    if par.force2D==1
-        plot_zslice(plot_simodel,par,2,par.saveopt)
-    else
-        plot_basic(plot_simodel,par,2,par.saveopt)
-    end
+    plot_basic(plot_simodel,par,2,par.saveopt)
 end
 
-if par.t_ts == 1; 
-    mf = synth_model.mdv;
-elseif par.t_ts == 2; 
-    mf = synth_model.mdq;
+mf = synth_model.mval;
+
+%% Calc synthetic data
+% data kernel
+G = make_G( K,data,par );
+% make synthetic data
+d_synth = G*mf;
+% event and station terms
+% noise
+if par.synth_noisy
+    d_synth = d_synth + random('norm',0,par.sym.noise,size(d_synth));
 end
 
-%% data kernel
+%% ==================== DO INVERSION ================== %%
+%% ============ copy from here for real thing ========= %%
+
+[model,par] = make_start_model(par,data);
+
+%% data kernel (redundant, but want to have the full inversion structure in here
 G = make_G( K,data,par );
 
-d_obs = G*mf;
-
-[d_obs,G] = add_static_terms(d_obs,G,data,model_1);
-
-
-if par.synth_noisy
-    d_obs = d_obs + random('norm',0,par.sym.noise,size(d_obs));
-end
-
-%% ==================== DO INVERSION ================= %%
-%% ==================== DO INVERSION ================= %%
-[model_1,par] = make_start_model(par,data);
-% Tweak parms for synth case
-% par.damp_evt = 1e4;
-% par.damp_stn = 1e4;
-% par.damp_evt_anis = 1e4;
-% par.damp_stn_anis = 1e4;
-mf = model_1.mdq;
-
-allres = zeros(par.niter,1);
-
-% ------------------------- START ITERATIONS ---------------------%
-
-for kk = 1:par.niter
-par.iter=kk;
-fprintf('\nIteration number %u\n',kk)
 tic
+count = 0;
+solved = false;
+while solved == false % loop if you will do squeezing
+count = count+1;
 
 %% Predicted data
-d = G*[model_1.mdq;model_1.estatic;model_1.sstatic];
-
-% if any(imag(d)~=0) | any(imag(G)~=0) %#ok<OR2>
-%     fprintf('Imaginary data!!')
-%     return
-% end
-
-%% event and station terms
+d_pred = G*model.mval;
+[d_synth,G] = add_static_terms(d_synth,G,data,model);
 
 %% calculate residual and do inverse problem
-d_use = d_obs;
-res = d_use - d;
-allres(kk) = norm(res);
-
-fprintf('Variance reduction = %.2f %%\n',variance_reduction(d_use,d));
-
-% END if norm res is small enough
-figure(1);clf;plot(allres,'o-'); pause(0.001)
-if kk>1
-    if abs(allres(kk)-allres(kk-1)) < 0.01
-        fprintf('\n NO CHANGE IN RES... STOPPING\n')
-        break
-    end
-end
+d_use = d_synth;
+res = d_use - d_pred;
 
 %% ADD REGULARISATION
 [ F,f ] = make_F_f( G,res,data,par );
@@ -82,41 +50,28 @@ end
 fprintf('Solving F*dm = f using LSQR\n')
 [dm,flag,relres,iter,resvec] = lsqr( F, f, 1e-4, 400 );
 if iter==400, fprintf('Warning LSQR may not be converging\n'); end
-%% UPDATE
-[ model_1 ] = model_update( model_1, dm, par.nmodel,data.evt.nevts,data.stn.nstas);
 
-%% Plot changes
-if par.plot_everyNtime > 0
-if mod(kk-1,par.plot_everyNtime)==0
-    plot_results_info(par,model_1,dm,data,d_use,res)
-    
-    [plot_somodel] = conv2plotable(model_1,par);
-    plot_basic(plot_somodel,par,3,0)
-    
-    pause(0.01)
-end
-end
+%% UPDATE
+[ model ] = model_update( model, dm, par.nmodel,data.evt.nevts,data.stn.nstas);
 
 toc
-par.build_K         = 0;
-par.build_smooth    = 0;
-
-end % loop on inversion iterations
+solved = true;
+end
 
 par.si_model = synth_model;
-par.so_model = model_1;
-par = zelt_semblance_anis(par);
+par.so_model = model;
+% par = zelt_semblance_anis(par);
 
-plot_results_info(par,model_1,dm,data,d_use,res)
+%% ================== Plotting ==================
+
+% plot_results_info(par,model_1,dm,data,d_use,res)
+
 
 if par.plot_synout
-    [plot_somodel] = conv2plotable(model_1,par);
-    if par.force2D==1
-        plot_zslice(plot_somodel,par,3,par.saveopt)
-    else
-        plot_basic(plot_somodel,par,3,par.saveopt)
-    end
+    [plot_somodel] = conv2plotable(model,par);
+    plot_basic(plot_somodel,par,3,par.saveopt)
 end
+return
 
 if strcmp(par.sym.opt,'checker')
     semb = par.semb;

@@ -10,11 +10,7 @@ plt.z = reshape(par.mz,shape);
 plt.lt= reshape(par.mlt,shape);
 plt.ln= reshape(par.mln,shape);
 
-if par.t_ts == 1
-    plt.val = reshape(model.mdv,shape);
-elseif par.t_ts ==2;
-    plt.val = reshape(model.mdq,shape);
-end
+plt.val = reshape(model.mval,shape);
 
 %% hit quality
 try

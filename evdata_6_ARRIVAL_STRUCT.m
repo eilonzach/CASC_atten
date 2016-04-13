@@ -57,7 +57,7 @@ for ie = 1:270 % 44:norids % loop on orids
     
     % RESULTS STRUCTURE
     eqar = struct('phase',phase,...
-                  'sta',{datinfo.sta}','slat',[],'slon',[],'selev',[],...
+                  'sta',{datinfo.sta}','slat',[],'slon',[],'selev',[],'isobs',[],...
                   'gcarc',0,'seaz',0,'rayp',0,'pred_arrT',0,...
                   'tt',[],'datZ',[],'datR',[],'datT',[],'datH',[],'corZ',[],'samprate',resamprate);
 
@@ -84,6 +84,7 @@ for ie = 1:270 % 44:norids % loop on orids
         % station details
         statmp = struct2cell(data.station);
         [eqar(is).sta,eqar(is).slat,eqar(is).slon,eqar(is).selev] = deal(statmp{:});
+        eqar(is).isobs = ~isempty(which_OBS(data.station.name));
         
         % station-event details
         eqar(is).gcarc = data.gcarc;

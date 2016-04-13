@@ -185,7 +185,7 @@ figure(5);plot([qdatwc1,qdatwc2])
 dT_xcor = diff(xcortimes([qdatwc1,qdatwc2], dt, prex, maxphi,1)); % ignoring anelasticity
 
 % estimates from simultaneous inversion of amp and phase data
-[ dtstar_e3,dT_e3,A0_e3 ] = invert_Aphi_4_dtdtstar( As(inds),phis(inds),fmids(inds), wts(inds),amp2phiwt);
+[ dtstar_e3,dT_e3,A0_e3 ] = invert_1pair_Aphi_4_dtdtstar( As(inds),phis(inds),fmids(inds), wts(inds),amp2phiwt);
 
 %% estimate dtstar from spectral ratio
 wlen = length(qdatwc1); % window length, accounting for taper+padding

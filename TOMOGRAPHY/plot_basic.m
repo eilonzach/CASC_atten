@@ -15,6 +15,14 @@ end
 
 clims = 5*[-1 1];
 
+if par.t_ts == 1
+    cmp = flipud(jet);
+    valstr = 'V';
+elseif par.t_ts == 2;
+    cmp = parula;
+    valstr = 'q';
+end
+
 min_lon = -131; %min(mod2.lon(ind_z))+2.5;
 max_lon = -120; %max(mod2.lon(ind_z))-1.5;
 min_lat = 39; %min(mod2.lat(ind_z))+2.5;
@@ -42,7 +50,6 @@ for iz = 2:par.nz-1
     if opt~=4
         VAL = griddata(plot_model.ln(:,:,iz),plot_model.lt(:,:,iz),100*plot_model.val(:,:,iz),xx,yy);        
         cbounds = clims;
-        cmp = colormap(flipud(jet)); 
     elseif opt==4
         VAL = griddata(plot_model.ln(:,:,iz),plot_model.lt(:,:,iz),100*plot_model.sv(:,:,iz),xx,yy);
         cbounds = [0 0.1];
@@ -71,33 +78,35 @@ for iz = 2:par.nz-1
 end
 
 %% scale
+
+
 subplot(3,4,iz)
 set(gca,'Visible','off')
 if opt~=4
-    str = '%';
-    colormap(flipud(jet)); 
+    str = ['$\delta ',valstr,' \,\, \%$']; 
+    colormap(cmp); 
     caxis(clims)
 elseif opt==4
-    str = 'bootstd'; 
+    str = '%\sigma_{boot}$'; 
     colormap(cmap_makecustom([0.8 0.8 0.1],[0.1 0.8 0.8],0)); 
     caxis([0 0.1]);
 end
-hc = colorbar('SouthOutside');
-set(get(hc,'XLabel'),'String',str,'FontSize',16,'FontWeight','bold')
-set(hc,'FontSize',12,'FontWeight','bold','Position',[0.695 0.2 0.2 0.02])
+hc = colorbar('EastOutside');
+set(get(hc,'YLabel'),'String',str,'FontSize',20,'FontWeight','bold','interpreter','latex')
+set(hc,'FontSize',12,'FontWeight','bold','Position',[0.8 0.12 0.02 0.2])
 
 
 %% save
 if saveopt
     suff = {'all','all_synin','all_synout','booterrs'};
-    pref = {'V','A'};
+    pref = ['d',valstr];
     if par.wtdata == 0, wtstr = '_nowt'; else wtstr = '';  end
-    for ii = 1:2
-    fprintf('Saving figure %s_%s%s... \n',pref{ii},suff{opt},wtstr);
-    figure(56 + ii + 10*opt)
-    ostr = sprintf('figs/%s_%s%s.eps',pref{ii},suff{opt},wtstr);
+   
+    fprintf('Saving figure %s_%s%s... \n',pref,suff{opt},wtstr);
+    
+    ostr = sprintf('figs/%s_%s%s.eps',pref,suff{opt},wtstr);
     print(ostr,'-depsc','-r600');
-    end
+
 end
 
 end
