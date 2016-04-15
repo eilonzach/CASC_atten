@@ -189,11 +189,11 @@ if par.plot_outputs
 plot_results_info(par,model,dm,data,d_use,res)
 plot_model = conv2plotable(model,par);
 if par.force2D==1
-    plot_zslice(plot_model,par,1,par.saveopt)
+    plot_Zmaps(plot_model,par,data,par.saveopt)
 else
-    plot_basic(plot_model,par,1,par.saveopt)
+    plot_Hmaps(plot_model,par,1,par.saveopt)
     if par.plot_Zslices
-    plot_zslice(plot_model,par,1,par.saveopt)
+    plot_Zmaps(plot_model,par,data,par.saveopt)
     end
 end
 
