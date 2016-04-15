@@ -13,8 +13,9 @@ plt.ln= reshape(par.mln,shape);
 if par.t_ts == 1;
     % calculated perturbations in slowness, but want perturabations in V
     model.mval = dQ_to_dq(model.mval); % same conversion scheme as from dq to dQ
-    plt.val = reshape(model.mval,shape);
 end
+
+plt.val = reshape(model.mval,shape);
 
 %% hit quality
 try
