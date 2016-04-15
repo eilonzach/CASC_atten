@@ -1,6 +1,8 @@
-function plot_Zmaps(plot_model,par,data,io,ifsave)
+function plot_Zmaps_synth(plot_model,par,data,io,ifsave)
+% plot_Zmaps_synth(plot_model,par,data,io,ifsave)
 
 HQmin = 0.4; % minimum HQ to plot
+
 
 def_z = 3; % default horizontal layer to show
 
@@ -27,7 +29,8 @@ cd(wdir);
 grd = plot_model;
 wpos=[1 500 1000 530]; % window position
 typestr = {'dV','dq'};
-iostr = {'in','out'}
+iostr = {'in','out'};
+if io==1, HQmin=0;end
 
 %% Bounds
 min_lon = -132; %min(mod2.lon(ind_z))+2.5;
