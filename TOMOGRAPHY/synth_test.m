@@ -6,7 +6,8 @@ synth_model = make_synth_model(par,data);
 
 if par.plot_inmodel
     [plot_simodel] = conv2plotable(synth_model,par);
-    plot_basic(plot_simodel,par,2,par.saveopt)
+    plot_Hmaps(plot_simodel,par,2,par.saveopt)
+    plot_Zmaps_synth(plot_somodel,par,data,1,par.saveopt)
 end
 
 mf = synth_model.mval;
@@ -91,8 +92,8 @@ plot_results_info(par,model,data,d_use,res,synth_model)
 return
 if par.plot_synout
     [plot_somodel] = conv2plotable(model,par);
-    plot_basic(plot_somodel,par,3,par.saveopt)
-    plot_Zmaps(plot_model,par)
+    plot_Hmaps(plot_somodel,par,3,par.saveopt)
+    plot_Zmaps_synth(plot_somodel,par,data,2,par.saveopt)
 end
 return
 

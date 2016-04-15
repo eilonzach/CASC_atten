@@ -1,4 +1,4 @@
-function [dV,anis,hq,slt,sln,ss,Dxy,smbv,smba,Xxy] = get_depth_section(pt1,pt2,plot_model)
+function [val,hq,slt,sln,ss,Dxy,smb,Xxy] = get_depth_section(pt1,pt2,plot_model)
 % inputs:
 %   pt1     = [lon1,lat1];
 %   pt2     = [lon2,lat2];
@@ -9,8 +9,7 @@ function [dV,anis,hq,slt,sln,ss,Dxy,smbv,smba,Xxy] = get_depth_section(pt1,pt2,p
 %   sln     = vector of longitude along section
 %   ss      = vector of distance (in degrees) along section
 %   Dxy     = total distance (in degrees) along section
-%   smbv    = matrix of velocity semblance within slice
-%   smba    = matrix of anisotropy semblance within slice
+%   smb    = matrix of anisotropy semblance within slice
 %   Xxy    = total distance (in km) along section
 
 
@@ -39,11 +38,9 @@ for iz = 1:nz
 end
 
 %% get the semblance values too
-smbv = zeros(nz,nxy);
-smba = zeros(nz,nxy);
+smb = zeros(nz,nxy);
 for iz = 1:nz
-    smbv(iz,:) = griddata(pmln,pmlt,plot_model.semb_v(:,:,iz),sln,slt);
-    smba(iz,:) = griddata(pmln,pmlt,plot_model.semb_a(:,:,iz),sln,slt);
+    smb(iz,:) = griddata(pmln,pmlt,plot_model.semb(:,:,iz),sln,slt);
 end
 
 Xxy = distance_km(pt1(2),pt1(1),pt2(2),pt2(1));
