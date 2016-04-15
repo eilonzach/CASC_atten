@@ -5,7 +5,7 @@ function [ H_damp,h_damp ] = make_dampmat( data,par )
 % 
 % model parameter vector is [nmodel,nevts,nstas]
 
-fprintf('creating damping matrix... \n');
+fprintf('>  Creating damping matrix... \n');
 
 damp_lav0 = 10; % damping layer average to zero
 
@@ -19,45 +19,37 @@ zz = par.zz;
 %% OVERALL damping (i.e. x,y=0)
 % make weights for diagonal - damping all to zeros
 mwt = ones(nmod,1);
-
-% ewt = par.damp_evt*ones(2*nevts,1);
-% swt = par.damp_stn*ones(2*nstas,1);
-ewt = ones(nevts,1);
-swt = ones(nstas,1);
-
-wt = [mwt;  
-      ewt; 
-      swt];    % repeat mwt for x,y at each node
+mwt(par.mz>350) = 2; % extra damp for deep nodes
 
 % turn into sparse diagonal matrix
-si = 1:nmat;
-sj = 1:nmat;
-s  = 0;
-fprintf('NB - NO DIAGONAL DAMPING\n')
+si = 1:nmod;
+sj = 1:nmod;
+s  = mwt;
+% fprintf('     NB - NO DIAGONAL DAMPING\n')
 
 H_damp = sparse(si,sj,s,nmat,nmat);
 h_damp = zeros(nmat,1);
 
 %% add event damping 
-mwt = ones(nevts,1);
+ewt = par.damp_evt*ones(nevts,1);
 eadi = [1:nevts]';
 eadj = [1:nevts]'+nmod;
-ead  = [mwt];
+ead  = ewt;
 ED = sparse(eadi,eadj,ead,nevts,nmat);
 
-H_damp = [H_damp;ED];
-h_damp = [h_damp;par.start_model.estatic];
+H_damp = [H_damp;   ED                      ];
+h_damp = [h_damp;   par.start_model.estatic ];
 
 
 %% add station damping 
-mwt = ones(nstas,1);
+swt = par.damp_stn*ones(nstas,1);
 sadi = [(1:nstas)]';
 sadj = [(1:nstas)]'+nmod+nevts;
-sad  = [mwt];
+sad  = swt;
 SD = sparse(sadi,sadj,sad,nstas,nmat);
 
-H_damp = [H_damp;SD];
-h_damp = [h_damp;par.start_model.sstatic];
+H_damp = [H_damp;   SD                      ];
+h_damp = [h_damp;   par.start_model.sstatic ];
 
 %% add constraint that average in each layer is 0
 bi = zeros(nmod,1);
@@ -73,15 +65,15 @@ for iz = 1:par.nz
 end
 B = sparse(bi,bj,b,par.nz,nmat);
 
-H_damp = [H_damp;damp_lav0*B];
-h_damp = [h_damp;zeros(par.nz,1)];
+H_damp = [H_damp;   damp_lav0*B     ];
+h_damp = [h_damp;   zeros(par.nz,1) ];
     
 %% Smooth by ocean floor age
-% smooth in age bins of 1 Ma. Only do for ages of < 12 Ma
+% smooth in age bins of 2 Ma. Only do for ages of < 12 Ma
 if par.age_smooth
-disp('Smoothing along isochrons ');
+disp('     smoothing along isochrons ');
     
-ages = 0:1:12;
+ages = 0:2:12;
 Nag = length(ages)-1;
 ci = nan(2*nmod,1); % just to be safe, max # of elements is 2*nmod
 cj = nan(2*nmod,1);
@@ -115,26 +107,11 @@ c(isnan(c))=[];
 
 C = sparse(ci,cj,c,iazi,nmat);
 
-H_damp = [H_damp;10*C];
-h_damp = [h_damp;zeros(iazi,1)];
+H_damp = [H_damp;   1e4*C            ];
+h_damp = [h_damp;   zeros(iazi,1)   ];
 
 end
 
-% %% damp out any anisotropy in the south of the array 
-% % since splitting gets complex here
-% if par.no_S_anis
-%     
-% indx = find(par.mlt < -10);
-% nindx = length(indx);
-% di = [(1:nindx),(1:nindx)]';
-% dj = [indx,nmod + indx];
-% d  = [ones(nindx,1);-ones(nindx,1)];
-% 
-% D = sparse(di,dj,d,nindx,nmat);
-% 
-% H_damp = [H_damp;1e4*D];
-% 
-% end
 
 end
 

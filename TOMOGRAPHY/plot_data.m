@@ -11,7 +11,6 @@ latlims = [39.1 50.9];
 plotsize = 800;
 dlim = [-1.6 1.6];
 
-cmap = parula;
 
 scale = 0.5; % length of lines
 
@@ -31,9 +30,12 @@ end
 if par.t_ts == 1;
     datstr = 'dT';
     lbstr = '\delta T';
+    cmap = jet;
+    dlim = 1.25*dlim;
 elseif par.t_ts == 2;
     datstr = 'dtstar';
     lbstr = '\Delta t^*';
+    cmap = parula;
 end
     
     

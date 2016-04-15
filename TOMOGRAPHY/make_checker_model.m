@@ -26,7 +26,7 @@ mfy2 = mfy(1:par.ny);
 mfxy2 = mfy2*mfx2; % 2D grid
 
 %% vertical spacing
-mfz = [0 0  1  1  0 -1 -1  0  0 ];
+mfz = [ 0  0  1  1  1  0 0 -1  -1  -1 0 0 0 0 ];
 mfz = repmat(mfz,1,2);
 mfz = mfz(1:par.nz);
 

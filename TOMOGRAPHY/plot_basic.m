@@ -102,11 +102,13 @@ if saveopt
     pref = ['d',valstr];
     if par.wtdata == 0, wtstr = '_nowt'; else wtstr = '';  end
    
-    fprintf('Saving figure %s_%s%s... \n',pref,suff{opt},wtstr);
+    fprintf('>  Saving figure %s_%s%s... \n',pref,suff{opt},wtstr);
     
     ostr = sprintf('figs/%s_%s%s.eps',pref,suff{opt},wtstr);
     print(ostr,'-depsc','-r600');
 
 end
+
+pause(0.01)
 
 end

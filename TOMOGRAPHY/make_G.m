@@ -6,7 +6,7 @@ function [ G ] = make_G( K,data,par )
 % K is the weighting matrix, repeated twice
 % 
 
-fprintf('Calculating G matrix\n')
+fprintf('>  Calculating G matrix\n')
 
 ray = data.ray;
 

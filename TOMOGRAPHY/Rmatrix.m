@@ -15,13 +15,13 @@ f = F*m_k;
 [r_k,~,~,~,~] = lsqr( F, f, 1e-4, 400 );
 % r_k = full(diag(F'*F));
 % r_k = full(diag(G'*G));
-[r_k,~,~,~,~] = lsqr( G, G*m_k, 1e-4, 400 );
-[r_k,~,~,~,~] = lsqr( H_damp, H_damp*m_k, 1e-4, 400 );
-[r_k,~,~,~,~] = lsqr( H_smooth, H_smooth*m_k(1:par.nmodel), 1e-4, 400 );
+% [r_k,~,~,~,~] = lsqr( G, G*m_k, 1e-4, 400 );
+% [r_k,~,~,~,~] = lsqr( H_damp, H_damp*m_k, 1e-4, 400 );
+% [r_k,~,~,~,~] = lsqr( H_smth, H_smth*m_k(1:par.nmodel), 1e-4, 400 );
 figure(8);
 plot(r_k)
 
-model.mval = (r_k(1:par.nmodel)+4.37e-4)*5e2;
+model.mval = r_k(1:par.nmodel)*1e2;
 [plot_rk] = conv2plotable(model,par);
 plot_basic(plot_rk,par,1,0);
 
