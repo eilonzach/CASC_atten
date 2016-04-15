@@ -88,10 +88,11 @@ res = d_use - d_pred;
 
 plot_results_info(par,model,data,d_use,res,synth_model)
 % profile viewer
-
+return
 if par.plot_synout
     [plot_somodel] = conv2plotable(model,par);
     plot_basic(plot_somodel,par,3,par.saveopt)
+    plot_Zmaps(plot_model,par)
 end
 return
 

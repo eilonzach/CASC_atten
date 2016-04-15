@@ -47,7 +47,7 @@ for ie = 1:data.evt.nevts
 end
 scatter(bz,rp,70,model.estatic,'filled')
 xlim([0 360])
-caxis([-3 3])
+caxis([-3 3]);
 xlabel('Event static times','FontSize',14)
 % ylabel('Number','FontSize',14)
 % title('Stn static','FontSize',16)
