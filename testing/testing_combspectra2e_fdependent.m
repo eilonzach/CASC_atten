@@ -157,7 +157,11 @@ plot(test_alphas,[Eaw1;Epw1])
     = invert_1by1_Aphis_4_STA_dtdtstar_alpha(Amat,phimat,fmids,test_alphas,wtmat,parms.inv.amp2phiwt );
 
 % report the best fitting vs. estimated values
-[dtstar_tru,delta_tstar_2,nan(size(A0_2)),dT_tru,delta_T_2, nan(size(A0_2)),A0_2]
+fprintf('dt*_tru  dt*_est  dT_tru  dT_est  A0_est   \n')
+for ii = 1:length(dtstar_tru)
+    fprintf(' %5.2f   %5.2f    %5.2f   %5.2f   %5.2f \n',...
+            dtstar_tru(ii),delta_tstar_2(ii),dT_tru(ii),delta_T_2(ii),A0_2(ii))
+end
 
 for ia = 1:length(test_alphas)
 % compute A and phi predictions for best fitting values at each alpha

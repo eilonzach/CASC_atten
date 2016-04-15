@@ -1,6 +1,6 @@
-% clear all
-% close all
-global F f dGdm res
+clear all
+close all
+global F f G res
 % profile on
 cd ~/Documents/MATLAB/CASC_atten/TOMOGRAPHY
 
@@ -49,7 +49,6 @@ end
 [model,par] = make_start_model(par,data);
 
 model_1 = model;
-% model = ideal_model;
 
 if par.plot_inmodel && ~par.synth_test
     [plot_inmodel] = conv2plotable(model,par);
@@ -96,110 +95,65 @@ if par.synth_test
     synth_test
     return
 end
-return
 
 
 %% ==================== DO INVERSION ================= %%
-tic
-%% Predicted data
-gm   = make_gm( K,data,model,par ); 
-dGdm = make_dGdm( K,data,model,par );
 
-if any(imag(gm)~=0) | any(imag(dGdm)~=0) %#ok<OR2>
-    fprintf('Imaginary data!!')
-    return
-end
-    
-%% event and station terms
-[gm,dGdm] = add_static_terms(gm,dGdm,data,model);
+G = make_G( K,data,par );
+
+%% predicted data from starting model
+d_pred = G*model.mval;
+[d_pred,G] = add_static_terms(d_pred,G,data,model);
 
 %% calculate residual and do inverse problem
-if par.crust_corr
-    d_use = data.ray.d - data.ray.corr1;
-else
-    d_use = data.ray.d;
-end
-res = d_use - gm;
-allres(kk) = norm(res);
-wtres(kk) = norm(data.ray.wt.*res);
-tabsres(kk) = norm(res(data.ray.sect<3));
-dtsres(kk) = norm(res(data.ray.sect==3));
-if kk>1
-    vr.all(kk-1) = variance_reduction(d_use,gm);
-    vr.tdiff(kk-1) = variance_reduction(d_use(data.ray.sect<3),gm(data.ray.sect<3));
-    vr.dT(kk-1) = variance_reduction(d_use(data.ray.sect==3),gm(data.ray.sect==3));
-    wvr.all(kk-1) = variance_reduction(data.ray.wt.*d_use,data.ray.wt.*gm);
-    wvr.tdiff(kk-1) = variance_reduction(data.ray.wt(data.ray.sect<3).*d_use(data.ray.sect<3),...
-                                         data.ray.wt(data.ray.sect<3).*gm(data.ray.sect<3));
-    wvr.dT(kk-1) = variance_reduction(data.ray.wt(data.ray.sect==3).*d_use(data.ray.sect==3),...
-                                         data.ray.wt(data.ray.sect==3).*gm(data.ray.sect==3));
-    % fprintf('Variance reduction = %.2f %%\n',100*(allres(1).^2 - allres(kk).^2)/allres(1)^2);
-    % fprintf('Weighted variance reduction = %.2f %%\n',100*(wtres(1).^2 - wtres(kk).^2)/wtres(1)^2);
-    fprintf('After iter %.0f Variance reduction = %.2f %%\n',kk-1,vr.all(kk-1));
-    fprintf('After iter %.0f Weighted variance reduction = %.2f %%\n',kk-1,wvr.all(kk-1));
-end
-
+d_use = data.ray.d;
+res = d_use - d_pred;
 
 %% ADD REGULARISATION
-[ F,f ] = make_F_f( dGdm,res,data,par );
+[ F,f ] = make_F_f( G,res,data,par );
 
 %% SOLVE
 if strcmp(par.solver,'lsqr')
-    fprintf('Solving F*dm = f using LSQR\n')
-    [dm,flag,relres,iter,resvec] = lsqr( F, f, 1e-6, 500 );
-    if iter==500, fprintf('Warning LSQR may not be converging\n'); end
+    fprintf('>  Solving F*dm = f using LSQR\n')
+    [dm,flag,relres,iter,resvec] = lsqr( F, f, 1e-5, 500 );
+    if iter==500, fprintf('Warning LSQR not converging\n'); end
 elseif strcmp(par.solver,'bicg')
-    fprintf('Solving F*dm = f using biconjugate gradient method\n')
+    fprintf('>  Solving F*dm = f using biconjugate gradient method\n')
     [ dm ] = solve_bicg( F, f, 1e-4, 1e4 );
 end
-
 
 %% UPDATE
 [ model ] = model_update( model, dm, par.nmodel,data.evt.nevts,data.stn.nstas);
 
-toc
+%% Final residual
+d_pred = G*[model.mval;model.estatic;model.sstatic];
+res = d_use - d_pred;
 
-fprintf('\nResults summary:\n')
+fprintf('>  Results summary:\n')
 % profile viewer
 
-[model.vv,model.aa] = va2xy(model.mvx,model.mvy,'backward');
-model.dv = 100*(model.vv-par.mvav)./par.mvav;
 
 %% RESULT STATS
-gm      = make_gm( K,data,model,par ); 
-[gm,~] = add_static_terms(gm,dGdm,data,model);
-res     = d_use - gm;
-vr.all(end)   = variance_reduction(d_use,gm);
-vr.tdiff(end)   = variance_reduction(d_use(data.ray.sect<3),gm(data.ray.sect<3));
-vr.dT(end)   = variance_reduction(d_use(data.ray.sect==3),gm(data.ray.sect==3));
-wvr.all(end) = variance_reduction(data.ray.wt.*d_use,data.ray.wt.*gm);
-wvr.tdiff(end) = variance_reduction(data.ray.wt(data.ray.sect<3).*d_use(data.ray.sect<3),...
-                                     data.ray.wt(data.ray.sect<3).*gm(data.ray.sect<3));
-wvr.dT(end) = variance_reduction(data.ray.wt(data.ray.sect==3).*d_use(data.ray.sect==3),...
-                                         data.ray.wt(data.ray.sect==3).*gm(data.ray.sect==3));
+vr  = variance_reduction(d_use,d_pred);
+wvr = variance_reduction(data.ray.wt.*d_use,data.ray.wt.*d_pred);
+
 fprintf('Final RMS error: %.2f\n',rms(res));
-% fprintf('Variance reduction = %.2f %%\n',100*(allres(1).^2 - norm(res).^2)/allres(1)^2)
-% fprintf('Weighted variance reduction = %.2f %%\n',100*(wtres(1).^2 - norm(data.ray.wt.*res).^2)/wtres(1)^2)
-% fprintf('Only tdiff variance reduction = %.2f %%\n',100*(tabsres(1).^2 - norm(res(data.ray.sect<3)).^2)/tabsres(1)^2)
-% fprintf('Only dt variance reduction = %.2f %%\n',100*(dtsres(1).^2 - norm(res(data.ray.sect==3)).^2)/dtsres(1)^2)
+fprintf('Variance reduction = %.2f %%\n',vr);
+fprintf('Weighted variance reduction = %.2f %%\n',wvr);
 
-fprintf('Variance reduction = %.2f %%\n',vr.all(end));
-fprintf('Weighted variance reduction = %.2f %%\n',wvr.all(end));
-fprintf('Only tdiff variance reduction = %.2f %%\n',vr.tdiff(end));
-fprintf('Only dt variance reduction = %.2f %%\n',vr.dT(end));
+fprintf('RMS event static = %.2f s \n',rms(model.estatic))
+fprintf('RMS station static = %.2f s \n',rms(model.sstatic))
 
-fprintf('RMS station diff-time static = %.2f s \n',0.5*rms(model.sstatic(1:data.stn.nstas) + model.sstatic(data.stn.nstas+1:end)))
-fprintf('RMS station splitting static = %.2f s \n',rms(model.sstatic(1:data.stn.nstas) - model.sstatic(data.stn.nstas+1:end)))
-
-
-[model_hq ] = hiQmodel( model,model_1,par,0.3 );
-gm_hq   = make_gm( K,data,model_hq,par ); 
-[gm_hq,~] = add_static_terms(gm_hq,dGdm,data,model);
-res_hq     = d_use - gm_hq;
-vr_hq = variance_reduction(d_use,gm_hq);
-
-% fprintf('HI-Q Variance reduction = %.2f %%\n',100*(allres(1).^2 - norm(res_hq).^2)/allres(1)^2)
-fprintf('HI-Q Variance reduction = %.2f %%\n',vr_hq);
+plot_results_info(par,model,data,d_use,res)
+plot_model = conv2plotable(model,par);
+plot_basic(plot_model,par,1,par.saveopt)
+return
+% [model_hq ] = hiQmodel( model,model_1,par,0.3 );
+% d_pred_hq = G*[model_hq.mval;model_hq.estatic;model_hq.sstatic];
+% res_hq     = d_use - d_pred_hq;
+% vr_hq = variance_reduction(d_use,d_pred_hq);
+% 
+% fprintf('HI-Q Variance reduction = %.2f %%\n',vr_hq);
 
 % some squeezing test stats...
 fprintf('\nSqueezing analysis:\n')
