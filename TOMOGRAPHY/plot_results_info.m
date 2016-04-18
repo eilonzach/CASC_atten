@@ -47,7 +47,7 @@ for ie = 1:data.evt.nevts
 end
 scatter(bz,rp,70,model.estatic,'filled')
 xlim([0 360])
-caxis([-3 3]);
+caxis([-1.5 1.5]);
 xlabel('Event static times','FontSize',14)
 % ylabel('Number','FontSize',14)
 % title('Stn static','FontSize',16)
@@ -57,7 +57,7 @@ subplot(14,5,[39,40,44,45,49,50,54,55,59,60,64,65,69,70])
 scatter(data.stn.lon,data.stn.lat,70,model.sstatic,'filled')
 axis([-131 -120 39 51])
 xlabel('Station static times','FontSize',14)
-caxis([-2 2])
+caxis([-1.5 1.5])
 % ylabel('Number','FontSize',14)
 % title('Stn static','FontSize',16)
 
@@ -69,22 +69,16 @@ if nargin == 6 && ~isempty(start_model)
 
     % plot event terms
     subplot(3,1,1)
-    dte = model.estatic-start_model.estatic;
-    [Ne,xe]=hist(dte); % NEGATIVE, so that positive value on plot means more time beneath model
-    bar(xe,Ne,'stack');
-    xlim([-3 3])
-    xlabel('Error (s)','FontSize',14)
-    ylabel('Number','FontSize',14)
-    title('Evt static errors','FontSize',16)
+    plot(start_model.estatic,model.estatic,'o');
+    xlabel('Estatic start','FontSize',14)
+    ylabel('Estatic model','FontSize',14)
+    title('Evemt static errors','FontSize',16)
 
     % plot station terms
     subplot(3,1,2)
-    dtc = model.sstatic-start_model.sstatic;
-    [Nc,xc]=hist(dtc); % NEGATIVE, so that positive value on plot means more time beneath model
-    bar(xc,Nc,'stack');
-    xlim([-3 3])
-    xlabel('Error (s)','FontSize',14)
-    ylabel('Number','FontSize',14)
+    plot(start_model.sstatic,model.sstatic,'o');
+    xlabel('Sstatic start','FontSize',14)
+    ylabel('Sstatic model','FontSize',14)
     title('Station static errors','FontSize',16)
 
     % plot resid vs. dT for differential travel times

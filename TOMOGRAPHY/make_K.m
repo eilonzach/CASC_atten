@@ -32,7 +32,7 @@ end
 
 pltry = 1;
 h = waitbar(0,'Progress through ray tracing');
-for iray = 1:N       % or switch to parfor to speed up
+parfor iray = 1:N       % or switch to parfor to speed up
     
     % When 3-D load ray here
     
@@ -62,8 +62,11 @@ for iray = 1:N       % or switch to parfor to speed up
         % KERNEL VALUE IS THE TRAVEL TIME: LENGTH DIVIDED BY VELOCITY
         n_vals = n_lens./par.mvav(n_indx);      
     end
+    if sum(n_vals)<100
+        pause
+    end
     
-% %----------------- comment out if parallelised -----------------
+    % %----------------- comment out if parallelised -----------------
 %     %% PLOT RAYS
 %     if par.plot_raypath
 %       rpath.rx(1:length(rx),iray) = rx;
@@ -74,8 +77,9 @@ for iray = 1:N       % or switch to parfor to speed up
 %         if pltry    
 %         figure(1); hold on
 %         scatter3(par.mx(n_indx),par.my(n_indx),par.mz(n_indx),500*(0.000001 + n_vals),'r');
+%         scatter3(par.mx(n_indx),par.my(n_indx),par.mz(n_indx),500*(0.000001 + par.mvav(n_indx)),'r');
 %         plot3(rx,ry,rz,'-o','LineWidth',2,'color',colour_get(data.ray.d(iray),-3,3))
-%         set(gca,'zdir','reverse','xlim',[-500 500],'ylim',[-500 500],'zlim',[0 par.max_z])
+%         set(gca,'zdir','reverse','xlim',[-1000 1000],'ylim',[-1000 1000],'zlim',[0 par.max_z])
 %         title(sprintf('orid %u, sta %u',data.ray.orid(iray),snum))
 %         
 %         
@@ -109,6 +113,7 @@ end
 K.n_indx = Sj;
 K.n_vals = S;
 delete(h)
+pause(0.01)
 
 toc
 

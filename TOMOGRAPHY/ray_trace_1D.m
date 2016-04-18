@@ -9,10 +9,11 @@ vdz = 5;
 rldr = par.kidd;
 
 % if not turn, else consider turn
-zz1 = [-selev:vdz:(max_depth-vdz-selev)]';
+zz1 = [0:vdz:(max_depth-vdz)]';
+zz1(1) = -selev;
 zz2 = [vdz:vdz:max_depth]';
 
-v1  = vel_profile(par.PS,zz1,slat,slon,selev,false,ssed);
+v1  = vel_profile(par.PS,zz1,slat,slon,selev,false,ssed); % to make contingent on path
 v2  = vel_profile(par.PS,zz2,slat,slon,selev,false,ssed);
 r1 = 6371-zz1;
 r2 = 6371-zz2;

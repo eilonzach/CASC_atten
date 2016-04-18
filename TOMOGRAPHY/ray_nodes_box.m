@@ -60,6 +60,18 @@ end
 
 if any(isnan(n_indx)), error('Some node indices not assigned'), end
 if any(isnan(n_lens)), error('Some node values not assigned'), end
+
+% now have to group lengths for each node - as n_indx will contain several
+% repetitions
+un_indx = unique(n_indx); % find unique node indices
+un_lens = zeros(size(un_indx));
+for n = 1:length(un_indx) % loop over unique nodes
+    un_lens(n) = sum(n_lens(n_indx==un_indx(n))); % summed sensitivity is sum of lengths thru that node
+end
+
+% rename
+n_indx = un_indx;
+n_lens = un_lens;
     
 end
 

@@ -18,11 +18,17 @@ nstas = data.stn.nstas;
 [H_damp,h_damp]  = make_dampmat(data,par);
 
 %% H_smooth
+if par.t_ts == 1
+    Hsmthfile = 'H_smth_v';
+elseif par.t_ts == 2
+    Hsmthfile = 'H_smth_q';
+end
+
 if par.build_smooth == 0
-    load H_smth H_smth;
+    load(Hsmthfile);
 elseif par.build_smooth == 1
    [ H_smth ] = make_smoothmat( par ); 
-   save ('H_smth','H_smth','-v7.3');
+   save (Hsmthfile,'H_smth','-v7.3');
 end  
 H_smth = [H_smth sparse(size(H_smth,1),nevts+nstas)]; % add station+evt columns
 
@@ -55,8 +61,8 @@ end
 
 
 %% Make F, f
-F = [WG; A*par.damp*H_damp; B*par.smooth*H_smth];
-f = [Wd; A*par.damp*h_damp; zeros(size(H_smth,1),1)];
+F = [WG; A*H_damp; B*par.smooth*H_smth];
+f = [Wd; A*h_damp; zeros(size(H_smth,1),1)];
 
 % pt_k = [45,-125,80]
 % [ r_k ] = Rmatrix( F, par, pt_k )

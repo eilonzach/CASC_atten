@@ -4,22 +4,22 @@ mf = zeros(par.ny,par.nx,par.nz);
 
 
 %% horiz spacing for upper layers
-mfx = [ 0 0 1 1 1 1 0 0 -1 -1 -1 -1];
+mfx = [ 0 1 1 1 0 -1 -1 -1];
 mfx = repmat(mfx,1,30);
 mfx1 = mfx(1:par.nx);
 
-mfy = [ 0 0 1 1 1 1 0 0 -1 -1 -1 -1]';
+mfy = [ 0 1 1 1 0 -1 -1 -1]';
 mfy = repmat(mfy,30,1);
 mfy1 = mfy(1:par.ny);
 
 mfxy1 = mfy1*mfx1; % 2D grid
 
 %% horiz spacing for lower layers
-mfx = [ 0 0 1 1 1 1 0 0 -1 -1 -1 -1];
+mfx = [ 0 1 1 1 0 -1 -1 -1];
 mfx = repmat(mfx,1,30);
 mfx2 = mfx(1:par.nx);
 
-mfy = [ 0 0 1 1 1 1 0 0 -1 -1 -1 -1]';
+mfy = [ 0 1 1 1 0 -1 -1 -1]';
 mfy = repmat(mfy,30,1);
 mfy2 = mfy(1:par.ny);
 

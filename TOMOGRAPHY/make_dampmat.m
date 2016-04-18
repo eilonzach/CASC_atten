@@ -8,6 +8,7 @@ function [ H_damp,h_damp ] = make_dampmat( data,par )
 fprintf('>  Creating damping matrix... \n');
 
 damp_lav0 = 10; % damping layer average to zero
+damp_age = 100; % smoothing along age contours
 
 nstas = data.stn.nstas;   
 nevts = data.evt.nevts;
@@ -19,22 +20,38 @@ zz = par.zz;
 %% OVERALL damping (i.e. x,y=0)
 % make weights for diagonal - damping all to zeros
 mwt = ones(nmod,1);
+mwt(par.mz<60) = 10; % extra damp for shallow nodes
 mwt(par.mz>350) = 2; % extra damp for deep nodes
 
 % turn into sparse diagonal matrix
 si = 1:nmod;
 sj = 1:nmod;
-s  = mwt;
+s  = par.damp*mwt;
 % fprintf('     NB - NO DIAGONAL DAMPING\n')
 
 H_damp = sparse(si,sj,s,nmat,nmat);
 h_damp = zeros(nmat,1);
 
+%% Shallow node damping
+shindx = find(par.mz<40);
+N = length(shindx);
+mwt = ones(N,1);
+
+shi = shindx;
+shj = 1:N;
+sh  = 100*mwt;
+
+shD = sparse(shi,shj,sh,N,nmat);
+
+H_damp = [H_damp;   shD                      ];
+h_damp = [h_damp;   zeros(N,1) ];
+
 %% add event damping 
-ewt = par.damp_evt*ones(nevts,1);
+ewt = ones(nevts,1);
+
 eadi = [1:nevts]';
 eadj = [1:nevts]'+nmod;
-ead  = ewt;
+ead  = par.damp_evt*ewt;
 ED = sparse(eadi,eadj,ead,nevts,nmat);
 
 H_damp = [H_damp;   ED                      ];
@@ -42,10 +59,10 @@ h_damp = [h_damp;   par.start_model.estatic ];
 
 
 %% add station damping 
-swt = par.damp_stn*ones(nstas,1);
+swt = ones(nstas,1);
 sadi = [(1:nstas)]';
 sadj = [(1:nstas)]'+nmod+nevts;
-sad  = swt;
+sad  = par.damp_stn*swt;
 SD = sparse(sadi,sadj,sad,nstas,nmat);
 
 H_damp = [H_damp;   SD                      ];
@@ -107,7 +124,7 @@ c(isnan(c))=[];
 
 C = sparse(ci,cj,c,iazi,nmat);
 
-H_damp = [H_damp;   1e4*C            ];
+H_damp = [H_damp;   damp_age*C            ];
 h_damp = [h_damp;   zeros(iazi,1)   ];
 
 end

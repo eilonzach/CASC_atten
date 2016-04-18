@@ -1,4 +1,4 @@
-function plot_basic(plot_model,par,opt,saveopt)
+function plot_Hmaps(plot_model,par,opt,saveopt)
 % opt is an option describing the input model
 %  opt == 1  means real result
 %  opt == 2  means synth in
@@ -13,20 +13,22 @@ if nargin < 4
     saveopt = 0;
 end
 
-clims = 5*[-1 1];
-
 if par.t_ts == 1
     cmp = flipud(jet);
     valstr = 'V';
+    clims = [-3 3];
 elseif par.t_ts == 2;
     cmp = parula;
     valstr = 'q';
+    clims = 4*[-1.5 .5];
 end
 
-min_lon = -131; %min(mod2.lon(ind_z))+2.5;
-max_lon = -120; %max(mod2.lon(ind_z))-1.5;
+min_lon = -132; %min(mod2.lon(ind_z))+2.5;
+max_lon = -119; %max(mod2.lon(ind_z))-1.5;
 min_lat = 39; %min(mod2.lat(ind_z))+2.5;
 max_lat = 51; %max(mod2.lat(ind_z))-3;
+
+HQmin = 0.3;
 
 %% load some data
 mapdata = '/Users/zeilon/Documents/MATLAB/CASC_atten/mapdata/';
@@ -57,6 +59,8 @@ for iz = 2:par.nz-1
     end
 %     smb = griddata(plot_model.ln(:,:,iz),plot_model.lt(:,:,iz),plot_model.semb_v(:,:,iz),xx,yy);
     hq = griddata(plot_model.ln(:,:,iz),plot_model.lt(:,:,iz),plot_model.hq(:,:,iz),xx,yy);
+        
+    VAL(hq<HQmin) = nan;
     
     contourf(xx,yy,VAL,80);
 %     contour(xx,yy,smb,[0.7:0.1:1],'--r','Linewidth',1.5)
@@ -72,8 +76,8 @@ for iz = 2:par.nz-1
     geoshow(jdf(:,2), jdf(:,1), 'Color', 'black','linewidth',1)
     geoshow(fzs(:,2), fzs(:,1),'Linestyle','--', 'Color', 'black','linewidth',1)
     
-    xlabel('Longitude'); 
-    ylabel('Latitude');
+%     xlabel('Longitude'); 
+%     ylabel('Latitude');
     title(sprintf('Depth slice %.0f km',par.zz(iz)),'FontSize',14)
 end
 

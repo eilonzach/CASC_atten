@@ -42,6 +42,8 @@ max_lat = 50; %max(mod2.lat(ind_z))-3;
 coast=load('~/Documents/MATLAB/CASC_atten/mapdata/m_casccoast.mat');
 [topoX,topoY,topoZ] = grdread2('~/Documents/MATLAB/CASC_atten/mapdata/cascmrg2.grd'); % load topo grid
 [topoX,topoY] = meshgrid(double(topoX),double(topoY)); topoZ = double(topoZ);
+jdf = dlmread('~/Documents/MATLAB/CASC_atten/mapdata/ridge_xy'); % load ridge
+fzs = dlmread('~/Documents/MATLAB/CASC_atten/mapdata/transforms_xy'); % load transforms & fracture zones
 
 
 %% GEOMETRY 
@@ -64,8 +66,10 @@ shading flat
 daspect([ 1 cosd(abs((min_lat+max_lat)/2)) 1])
 colormap(cmp); caxis(cbounds); colorbar;
 text(min_lon + 0.5, min_lat+0.5,[num2str(zz(def_z)),' km'],'FontSize',22,'FontWeight','bold')
-geoshow(coast.ncst(:,2), coast.ncst(:,1), 'Color', 'black','linewidth',1.5)
-
+geoshow(coast.ncst(:,2), coast.ncst(:,1), 'Color', 'black','linewidth',2)
+geoshow(jdf(:,2), jdf(:,1), 'Color', 'black','linewidth',1)
+geoshow(fzs(:,2), fzs(:,1),'Linestyle','--', 'Color', 'black','linewidth',1)
+    
 set(gca,'Layer','Top','FontSize',16)
 xt=[min_lon:2:max_lon]; yt= [min_lat:2:max_lat];
 set(gca,'XTick',xt,'YTick',yt) 
@@ -163,21 +167,21 @@ for ixy = 1:size(sxys,3)
     box on
 
     % plot section ends
-    text(min(ss),-33,istr(1),'HorizontalAlignment','center','FontWeight','bold','FontSize',24)
-    text(max(ss),-33,istr(2),'HorizontalAlignment','center','FontWeight','bold','FontSize',24)
+    text(min(ss),- 6*topo_exaggerate,istr(1),'HorizontalAlignment','center','FontWeight','bold','FontSize',24)
+    text(max(ss),- 6*topo_exaggerate,istr(2),'HorizontalAlignment','center','FontWeight','bold','FontSize',24)
 
     %% SAVE
     
     set(gcf, 'Color', [1 1 1])
     if ifsave
-        save2pdf(15,strcat(typestr{par.t_ts},'_Zmap_syn',iostr(io),'_',num2str(ixy)),figdir);
+        save2pdf(15,strcat(typestr{par.t_ts},'_Zmap_syn',iostr{io},'_',num2str(ixy)),figdir);
     end
 
 end % loop on sections
 
 %% Save hmap
 if ifsave
-    save2pdf(14,strcat(typestr{par.t_ts},'_Zmap_syn',iostr(io),'_hplot'),figdir);
+    save2pdf(14,strcat(typestr{par.t_ts},'_Zmap_syn',iostr{io},'_hplot'),figdir);
 end
 
 end

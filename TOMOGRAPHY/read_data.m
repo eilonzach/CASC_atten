@@ -67,8 +67,9 @@ stns.age = B{9};
 stns.plt = strtok(B{10},' ');  % remove trailing spaces
 stns.yr  = B{11};
 stns.moh = B{12};
-stns.sed = B{13};
+stns.sed = B{13}/1000; % go from m to km
 clear B
+stns.sed(stns.sed==-.999) = 0;
 
 
 stn.lat = zeros(length(sta_names),1);
