@@ -33,5 +33,5 @@ set(gcf,'pos',[360   212   991   493])
 
 %% save it
 if ifsave
-    save2pdf(33,'filter_comb','/Users/zeilon/Work/Posters/AGU_2015/figures/')
+    save2pdf(33,'filter_comb','/Users/zeilon/Work/Papers/Casc_atten/figs/')
 end

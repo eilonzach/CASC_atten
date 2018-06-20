@@ -20,7 +20,7 @@ if par.t_ts == 1
 elseif par.t_ts == 2;
     cmp = parula;
     valstr = 'q';
-    clims = 4*[-1.5 .5];
+    clims = 400*[-1.5 .5];
 end
 
 min_lon = -132; %min(mod2.lon(ind_z))+2.5;

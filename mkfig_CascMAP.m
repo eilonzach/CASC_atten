@@ -58,13 +58,13 @@ image(grdX(:),grdY(:),colour_get(grdZ,3000,-5000,haxby)); % where numbers are ma
 plot(coast.ncst(:,1),coast.ncst(:,2),'k','LineWidth',1)
 
 % volcanoes
-[Vnam,Vlon,Vlat,~,~] = textread('volcanoes_complete','%s %f %f %s %s','headerlines',1);
-scatter( Vlon, Vlat,60,'k','^','MarkerFaceColor',[1 1 1],'LineWidth',1) %Volcanoes
-[Vnam,Vlon,Vlat,~,~] = textread('volcanoes_principal','%s %f %f %s %s','headerlines',1);
-scatter( Vlon, Vlat,85,'k','^','MarkerFaceColor','r','LineWidth',1) %Volcanoes
+% [Vnam,Vlon,Vlat,~,~] = textread('volcanoes_complete','%s %f %f %s %s','headerlines',1);
+% scatter( Vlon, Vlat,60,'k','^','MarkerFaceColor',[1 1 1],'LineWidth',1) %Volcanoes
+% [Vnam,Vlon,Vlat,~,~] = textread('volcanoes_principal','%s %f %f %s %s','headerlines',1);
+% scatter( Vlon, Vlat,85,'k','^','MarkerFaceColor','r','LineWidth',1) %Volcanoes
 
 
-plot(jdf(:,1),jdf(:,2),'k','Linewidth',2) % ridge
+plot(jdf(:,1),jdf(:,2),'k','Linewidth',3) % ridge
 plot(fzs(:,1),fzs(:,2),'--k','Linewidth',1) % transforms
 
 %% plot section
@@ -81,12 +81,15 @@ plot(fzs(:,1),fzs(:,2),'--k','Linewidth',1) % transforms
 % [ chgrdage,chrons,F ] = jdf_crust_age(chgrdY,chgrdX);
 % % chtick = unique(chrons.age(~isnan(chrons.age))); % plot chrons
 % chtick = 1:12; % plot Ma
-% contour(chgrdX,chgrdY,chgrdage,chtick,'LineWidth',2,'linestyle','--')
-% colormap(hot)
+% for ic = 1:length(chtick)
+%     ch = chtick(ic);
+%     contour(chgrdX,chgrdY,chgrdage,[ch ch],'LineWidth',2,'linestyle','--',...
+%         'color',colour_get(ch,max(chtick),min(chtick),hot))
+% end
 
 xlim(lonlims)
 ylim(latlims)
-grid on
+grid on 
 box on
 
 cd(wd)

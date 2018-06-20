@@ -2,6 +2,7 @@ function [rx,ry,rz,Dr] = ray_trace_1D(par, p, baz, slat, slon, selev, ssed)
 % [rx,ry,rz,Dr] = ray_trace_1D(par, p, baz, slat, slon, selev, ssed)
 % 
 % 1D ray tracing function
+% Zach Eilon 2016 (inherited from Brandon Schmandt, 2014)
 
 % determine if potentially turning in model
 max_depth = par.max_z;

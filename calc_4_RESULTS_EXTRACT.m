@@ -2,8 +2,8 @@
 clear all
 % if running alone, establish these, otherwise use previous values
 if ~exist('phase') || ~exist('component') 
-phase = 'P';
-component = 'Z';
+phase = 'S';
+component = 'T';
 end
 
 ifOBSonly = false;
@@ -19,7 +19,7 @@ resdir = '~/Documents/MATLAB/CASC_atten/results/'; % needs final slash
 
 %% conditions
 mag_min = 6.25; % skip events if below this mag
-acor_min = 0.8; % skip events if xcor max below this acor
+acor_min = 0.75; % skip events if xcor max below this acor
 snr_min = 10; % skip result if data below this snr
 
 %% =================================================================== %%
@@ -42,8 +42,10 @@ all_dT     = nan(nstas,norids);
 all_dtstar = nan(nstas,norids);
 all_dT_comb = nan(nstas,norids);
 all_dtstar_comb = nan(nstas,norids);
+all_acor = nan(nstas,norids);
+all_rayp = nan(nstas,norids); 
 
-for ie = 1:402 % 44:norids % loop on orids
+for ie = 1:350 % 44:norids % loop on orids
     fprintf('Orid %.0f\n',ie)
     if  mags(ie)<mag_min, continue, end
     %% grab data!
@@ -72,7 +74,15 @@ for ie = 1:402 % 44:norids % loop on orids
         [~,ind,~] = intersect(stas,datinfo(is).sta,'stable');
         all_dT(ind,ie) = eqar(is).dT;
     end
-    
+%% parse acor and rayp
+    for is = 1:length(eqar)
+        if eqar(is).acor < acor_min, continue; end
+        if isempty(eqar(is).dT), continue, end
+        [~,ind,~] = intersect(stas,datinfo(is).sta,'stable');
+        all_acor(ind,ie) = eqar(is).acor;
+        all_rayp(ind,ie) = eqar(is).rayp;
+    end
+ 
     %% parse dtstar data
     if ~isfield(eqar,'dtstar'), fprintf('   NEED TO CALC DTSTAR\n',phase), continue, end
     for is = 1:length(eqar)
@@ -95,7 +105,14 @@ for ie = 1:402 % 44:norids % loop on orids
         all_dtstar_comb(ind,ie) = eqar(is).dtstar_comb;
     end
     
+   
+    
 end % loop on orids
+
+
+
+fprintf('NOT saving\n')
+return
 
 save([resdir,'all_dT_',obsstr,phase,'_',component],'all_dT')
 save([resdir,'all_dtstar_',obsstr,phase,'_',component],'all_dtstar')

@@ -7,7 +7,7 @@ addpath('matguts')
 %% parameters
 phase = 'S';
 component = 'T'; %'Z', 'R', or 'T'
-resamprate = 5 ; % new, common sample rate
+resamprate = 40 ; % new, common sample rate
 filtfs = 1./[40 .5]; % [flo fhi] = 1./[Tmax Tmin] in sec
 taperx = 0.2;
 datwind = [-160 165]; % window of data in eqar structure
@@ -17,18 +17,18 @@ mavwind = 1; % length of moving average to smooth spectrum (1 for no smoothing)
 lofrq = 0.05; % uppermost freq to fit (Hz)
 hifrq = 0.25; % uppermost freq to fit (Hz)
 
-overwrite = true;
+overwrite = false;
 ifOBSonly = false;
 ifusecorZ = true;
-ifplot    = false;
-ifsave    = true;
+ifplot    = true;
+ifsave    = false;
 
 %% directories 
 % ANTELOPE DB DETAILS
 dbdir = '/Users/zeilon/Work/CASCADIA/CAdb/'; % needs final slash
 dbnam = 'cascBIGdb';
 % DATA DIRECTORY (top level)
-datadir = '/Volumes/DATA_mini2/CASCADIA/DATA/'; % needs final slash
+datadir = '/Volumes/DATA/CASCADIA/DATA/'; % needs final slash
 
 %% =================================================================== %%
 %% ==========================  GET TO WORK  ========================== %%
@@ -43,7 +43,7 @@ dbclose(db);
 
 obsstr = ''; if ifOBSonly, obsstr = 'OBS_'; end
 
-for ie = 1:270 % 44:norids % loop on orids
+for ie = 263:263 % 44:norids % loop on orids
 %     if  mags(ie)<6.9, continue, end
     tic
     fprintf('\n Orid %.0f %s \n\n',orids(ie),epoch2str(evtimes(ie),'%Y-%m-%d %H:%M:%S'))
@@ -263,6 +263,7 @@ for ie = 1:270 % 44:norids % loop on orids
     end % loop on good stas
 
     plot_ATTEN_TandF_domain( eqar(indgd) )
+
     end % ifplot
     
 	%% -------------------------- SAVE ---------------------------

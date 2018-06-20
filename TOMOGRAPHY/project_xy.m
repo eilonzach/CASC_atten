@@ -7,7 +7,8 @@ function [result1,result2] = project_xy( par, input1, input2, direction )
 % and back again
 %
 
-error( nargchk(3,4,nargin) );
+% error( nargchk(3,4,nargin) );
+narginchk(3,4);
 
 if ( nargin == 3 )
 	direction = 'forward';

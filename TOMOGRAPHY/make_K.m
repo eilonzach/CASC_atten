@@ -56,15 +56,19 @@ parfor iray = 1:N       % or switch to parfor to speed up
     [n_indx, n_lens ] = ray_nodes_box(mx,my,mz,lr,par);
     
     if par.t_ts == 1 % if velocity inversion        
-        % KERNEL VALUE IS THE PATH LENGTH 
-        n_vals = n_lens;
+        % KERNEL VALUE IS THE MEAN TIME PER NODE 
+        n_vals = n_lens./par.mvav(n_indx);
+        if sum(n_vals)<100
+            pause
+        end
     elseif par.t_ts == 2 % if q inversion
-        % KERNEL VALUE IS THE TRAVEL TIME: LENGTH DIVIDED BY VELOCITY
-        n_vals = n_lens./par.mvav(n_indx);      
+        % KERNEL VALUE IS THE MEAN TSTAR PER NODE
+        n_vals = n_lens./par.mvav(n_indx)./par.mQav(n_indx);      
+        if sum(n_vals)<0.1
+            pause
+        end
     end
-    if sum(n_vals)<100
-        pause
-    end
+
     
     % %----------------- comment out if parallelised -----------------
 %     %% PLOT RAYS

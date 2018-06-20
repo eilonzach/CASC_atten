@@ -1,10 +1,11 @@
 %% %% %% 
 % clear all
 saveopt = 1;
-% ofile = '~/Documents/MATLAB/CASC_atten/TOMOGRAPHY/results/Ltest_dtstar_ST';
+ofile = '~/Documents/MATLAB/CASC_atten/TOMOGRAPHY/results/Ltest_dtstar_ST';
 ofig = 'Lcurv_dtstar_ST';
 figN = 6;
-% load(ofile)
+resid2rough = 2;
+load(ofile)
 
 
 Nd = length(Ltest.damp);
@@ -42,8 +43,9 @@ plot(Ltest.resid(Ltest.damp==3,Ltest.smooth==3),norm(Ltest.damp==3,Ltest.smooth=
 set(ax1,'Fontsize',16,'xdir','reverse','LineWidth',1.5,'XTick',[0:5:100],'YTick',[0:1:20])
 xlabel('Variance reduction (\%)',  'FontSize',23,'Interpreter','Latex')
 ylabel('Model norm (s)',          'FontSize',23,'Interpreter','Latex')
-set(get(ax1,'Ylabel'),'Position',[100.8 3.5 1])
-axis([85 100 0 7])
+
+set(get(ax1,'Ylabel'),'Position',[87.8 3.5 1])
+axis([45 70 0 7])
 
 % text(101,-18,['\textbf{Figure ',num2str(figN),'}'],'Fontsize',25,'interpreter','latex')
 
@@ -56,7 +58,7 @@ text(96.7,14,'$\epsilon=3$','interpreter','latex','fontsize',20)
 arrow([92,17],[87.2,34],'length',10)
 
 %% key
-keyloc = [90,5];
+keyloc = [78,5];
 keysiz = [4,3];
 
 kle = keyloc(1) - 0.5*keysiz(1); kri = keyloc(1) + 0.5*keysiz(1);
@@ -85,6 +87,47 @@ end
 
 
 
+%% penalty function
+penalty = (Ltest.norm) + resid2rough*(100-Ltest.vr);
+penalty = (Ltest.norm) + 0.5*(100-Ltest.vr);
+
+% subplot(2,1,2)
+figure(34), clf
+set(gcf,'Position',[100 600 600 450])
+h = contourf(penalty,100);
+shading flat
+set(gca,'XTick',1:length(Ltest.smooth),'XTickLabel',Ltest.smooth,...
+        'YTick',1:4:length(Ltest.damp),'YTickLabel',Ltest.damp(1:4:end))
+set(gca,'Fontsize',18,'yscale','log')
+xlabel('Smoothing ($\gamma$)',  'FontSize',24,'Interpreter','Latex')
+ylabel('Damping ($\epsilon$)',  'FontSize',24,'Interpreter','Latex')
+
+
+[minA,x,y] = mingrid(penalty);
+title(sprintf('Contour plot of penalty: (F = %.3f)\nMinimum is damp = %.1f, smooth = %.1f',...
+    resid2rough,Ltest.damp(y),Ltest.smooth(x)),'FontSize',16)
+set(get(gca,'Ylabel'),'Position',[0.27 7 1])
+
+
+caxis([minA, 1.5*minA]);
+
+%% plot the minimum:
+% subplot(2,1,1), 
+figure(33), hold on
+plot(Ltest.vr(y,x),Ltest.norm(y,x),'o','MarkerSize',14,'MarkerEdge','w','MarkerFace','k')
+% subplot(2,1,2), hold on
+figure(34), hold on
+plot(x,y,'o','MarkerSize',14,'MarkerEdge','w','MarkerFace','k')
+
+
+return
 if saveopt
     save2pdf(33,ofig,'~/Documents/MATLAB/CASC_atten/TOMOGRAPHY/figs/');
 end
+
+if saveopt
+    save(ofile,'Ltest');
+    save2pdf(34,ofig,'~/Documents/MATLAB/CASC_atten/TOMOGRAPHY/figs/');
+end
+
+

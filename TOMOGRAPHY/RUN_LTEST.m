@@ -16,7 +16,7 @@ odir = '~/Documents/MATLAB/CASC_atten/TOMOGRAPHY/results/';
 Ltest = struct([]);
 
 Ltest(1).damp = 3*logspace(-2,1,9)'; % was logspace(-2,2,21)
-Ltest.smooth =  [.1,1,3,10,20,30]; % was logspace(-2,2,21)
+Ltest.smooth =  [.1,1,3,10,15,20,30]; % was logspace(-2,2,21)
 
 Nd = length(Ltest.damp);
 Ns = length(Ltest.smooth);
@@ -43,9 +43,8 @@ data = read_data(datfile,stafile,par);
 
 %% weight data
 if par.wtdata
-    fprintf('Weighting of data being altered by function wtdata\n')
-    fprintf('CHECK wtdata CAREFULLY TO SEE WHAT IT IS DOING!!\n')    
-    data.ray.wt = wtdata(data,par);
+    fprintf('>  Weighting data\n') 
+    data.ray.wt = wtdata(data);
 else
     fprintf('>  No data weighting\n')
     data.ray.wt = ones(size(data.ray.d));
@@ -125,7 +124,7 @@ res = d_use - d_pred;
 
 %% ---------------------  LTESTING  ---------------------
 %% ---------------------  LTESTING  ---------------------
-fprintf('\n>  Starting L-curve iterations\n')
+fprintf('\n>  STARTING L-CURVE ITERATIONS\n')
 Ltest.par = par;
 for id = 1:length(Ltest.damp)
 for is = 1:length(Ltest.smooth)
@@ -134,12 +133,13 @@ for is = 1:length(Ltest.smooth)
     model = model_1;
     d_pred = G*[model.mval;model.estatic;model.sstatic];
     res = d_use - d_pred;
-    fprintf('    Damp=%.2f  Smooth=%.2f\n',par.damp,par.smooth)
+    fprintf('\n    Damp=%.2f  Smooth=%.2f\n',par.damp,par.smooth)
     
     %% ADD REGULARISATION
     [ F,f ] = make_F_f( G,res,data,par );
 
     %% SOLVE
+    fprintf('>  Solving...\n')
     if strcmp(par.solver,'lsqr')
         [dm,flag,relres,iter,resvec] = lsqr( F, f, 1e-5, 500 );
 %         if iter==500, fprintf('Warning LSQR not converging\n'); end

@@ -7,9 +7,10 @@ def_z = 3; % default horizontal layer to show
 topo_exaggerate = 3.5;
 
 %% PLOT VERTICAL SLICES
-sxys(:,:,1) = [-132 46; -118 44.5]; 
-sxys(:,:,2) = [-132 42; -118 41]; 
-sxys(:,:,3) = [-121.5 39.5; -121.5 49];
+sxys(:,:,1) = [-132 47; -118 46.5]; 
+sxys(:,:,2) = [-132 44; -118 44]; 
+sxys(:,:,3) = [-132 42; -118 41]; 
+sxys(:,:,4) = [-121.5 39.5; -121.5 49];
 
 %% Bounds
 min_lon = -132; %min(mod2.lon(ind_z))+2.5;
@@ -23,7 +24,7 @@ cmp = flipud(jet);
 cbounds = [-3 3];
 elseif par.t_ts==2
 cmp = parula; 
-cbounds = [-6 2];
+cbounds = [-600 200];
 end
 
 %% Starts
@@ -142,7 +143,12 @@ for ixy = 1:size(sxys,3)
     water.y = [-shifter*ones(size(topo)); flipud(topo)]; water.y(water.y<-shifter)=-shifter;
     hw = patch(water.x,water.y,'b');
     set(hw,'EdgeAlpha',0,'FaceAlpha',0.5)
+    
+    %% plot on slab
+    [slbs,slbz] = slab_on_section(sxy);
+    hsl = plot(slbs-(Xxy/2),-slbz,'--k','LineWidth',3);
 
+    
     %% plot volcanoes within 50 km
     % calc. distance of stations to line, which are in bounds
     Dev = dist2line(sxy(1,:),sxy(2,:),[Vlon,Vlat])*Xxy/norm(diff(sxy));
@@ -198,5 +204,25 @@ end % loop on sections
 
 end
 
-
+function [slbs,slbz] = slab_on_section(sxy)
+    Xxy = distance_km(sxy(1,2),sxy(1,1),sxy(2,2),sxy(2,1));
+    [ slab_contrs ] = McCrory_slab_depth;
+    Nc = length(slab_contrs);
+    slbs = nan(Nc,1);
+    slbz = nan(Nc,1);
+    for ic = 1:Nc
+        dst = dist2line(sxy(1,:),sxy(2,:),[slab_contrs(ic).lon,slab_contrs(ic).lat]);
+        if ~any(dst<0), continue; end
+        if ~any(dst>0), continue; end
+        ind = [find(dst==min(dst(dst>0))),find(dst==max(dst(dst<0)))];        
+        ss = ([slab_contrs(ic).lon(ind),slab_contrs(ic).lat(ind)]-ones(2,1)*sxy(1,:))*diff(sxy)'*Xxy/(norm(diff(sxy))^2);
+        slbs(ic) = mean(ss);
+        slbz(ic) = slab_contrs(ic).depth;
+    end
+    
+    % fill in any nans w/ linear interp
+    nnan = ~isnan(slbz);
+    slbs = interp1(slbz(nnan),slbs(nnan),[slab_contrs.depth]);
+    slbz = interp1(slbz(nnan),slbz(nnan),[slab_contrs.depth]);
+end
 

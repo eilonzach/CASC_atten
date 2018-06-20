@@ -18,9 +18,9 @@ function [ dtstar_pref,dT_pref,A0_pref,alpha_pref,alpha_misfits,dtstars,dTs,A0s,
 %     phi = (ln(f) - ln(fNq))*dtstar/pi + dT
 % 
 % elseif Q is frequency dependent (alpha~   =0)
-%     A = A0*exp(-(pi/((2*pi)^alpha)) * f^(1-alpha) * dtstar)
-%     ln(A) = ln(A0) - (pi/((2*pi)^alpha)) * f^(1-alpha) * dtstar
-%     phi = 0.5*cot(alpha*pi/2)*f^alpha + dT
+%     A = A0*exp(-pi * f0^alpha * f^(1-alpha) * dtstar)
+%     ln(A) = ln(A0) - pi * f0^alpha * f^(1-alpha) * dtstar0
+%     phi = 0.5*cot(alpha*pi/2)*(f/f0)^alpha + dT
 
 
 %% prelims
@@ -45,7 +45,7 @@ misfits_phi = zeros(Npair,Na);
 
 % loop on alphas
 for ia = 1:length(test_alphas)
-    alpha = test_alphas(ia);
+    alp = test_alphas(ia);
 
 
     % loop over station pairs
@@ -68,7 +68,7 @@ for ia = 1:length(test_alphas)
         u (2*(count-1)+[1 2]) = [-1 1]; % delta is value of 2 - value of 1
 
         [ dtstar,dT,A0,misfit,~,m_amp,m_phi ] ...
-            = invert_1pair_Aphi_4_dtdtstar(Amat(count,:),phimat(count,:),fmids, wtmat(count,:),amp2phiwt,alpha);
+            = invert_1pair_Aphi_4_dtdtstar(Amat(count,:),phimat(count,:),fmids, wtmat(count,:),amp2phiwt,alp);
 
         dtstar_pairwise(count) = dtstar;
         dT_pairwise(count) = dT;
@@ -107,7 +107,8 @@ for ia = 1:length(test_alphas)
 
 end %loop on alphas
 
-alpha_misfits = amp2phiwt*sum(misfits_amp,1) + sum(misfits_phi,1);
+f = amp2phiwt/(amp2phiwt+1);
+alpha_misfits = f*sum(misfits_amp,1) + (1-f)*sum(misfits_phi,1);
 alpha_misfits = alpha_misfits(:);
 
 
@@ -118,12 +119,12 @@ dtstar_pref = dtstars(:,mindex(alpha_misfits));
 dT_pref = dTs(:,mindex(alpha_misfits));
 A0_pref = A0s(:,mindex(alpha_misfits));
 
-figure(77), clf;
-plot(test_alphas,alpha_misfits,'-o')
-xlabel('F-dependency ($\alpha$)','interpreter','latex','FontSize',22)
-ylabel('Global misfit, ($\chi^2$)','interpreter','latex','FontSize',22)
-set(gca,'FontSize',14,'box','on')
-
+% figure(77), clf;
+% plot(test_alphas,alpha_misfits,'-o')
+% xlabel('F-dependency ($\alpha$)','interpreter','latex','FontSize',22)
+% ylabel('Global misfit, ($\chi^2$)','interpreter','latex','FontSize',22)
+% set(gca,'FontSize',14,'box','on')
+% 
 
 
 end

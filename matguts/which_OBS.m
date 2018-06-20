@@ -1,10 +1,7 @@
-function [IP,note] = which_OBS(sta)
+function [IPs,notes] = which_OBS(stas)
 % [IP,note] = which_OBS(sta)
 % IP is 'WHOI', 'LDEO', or 'SIO';
 % note is [] or 'TRM'
-
-IP = [];
-note = [];
 
 whoi = {'G03A','G30A','J06A',...
         'J23A','J28A','J29A',...
@@ -69,18 +66,37 @@ trm = {'FN01A','FN05A','FN07A','FN08A',...
        'J41C','J49C','J57C',...
        };
    
-   
-switch sta
-    case whoi
-        IP = 'WHOI';
-    case ldeo
-        IP = 'LDEO';
-    case sio
-        IP = 'SIO';
+if ~iscell(stas)
+    stas = {stas};
 end
 
-if any(strcmp(sta,trm))
-    note = 'TRM';
+nstas = length(stas);
+IPs = cell(nstas,1);
+notes = cell(nstas,1);
+   
+for is = 1:nstas
+    sta = stas{is};
+    IP = ''; note = '';
+    switch sta
+        case whoi
+            IP = 'WHOI';
+        case ldeo
+            IP = 'LDEO';
+        case sio
+            IP = 'SIO';
+    end
+
+    if any(strcmp(sta,trm))
+        note = 'TRM';
+    end
+    
+    IPs{is} = IP;
+    notes{is} = note;
+end
+
+if length(stas)==1
+    IPs = IPs;
+    notes = notes{1};
 end
 
 end

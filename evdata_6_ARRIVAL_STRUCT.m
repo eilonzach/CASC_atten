@@ -96,8 +96,8 @@ for ie = 1:270 % 44:norids % loop on orids
         eqar(is).pred_arrT = data.phases(ip).artime;
         
         % check resampling
-        if resamprate>data.samprate
-            error('resamprate would alias data - use smaller resamprate')
+        if resamprate<data.samprate
+            error('resamprate would alias data - use larger resamprate')
         end
             
         % GET DATA
@@ -119,7 +119,7 @@ for ie = 1:270 % 44:norids % loop on orids
             datE = interp1(data.tt,data.dat(:,strcmp(data.chans.component,'E')),tt);
             
             foraz = mod(data.seaz+180,360);
-            eqar(is).datR =  datN*sind(foraz) + datE*sind(foraz);
+            eqar(is).datR =  datN*cosd(foraz) + datE*sind(foraz);
             eqar(is).datT = -datN*sind(foraz) + datE*cosd(foraz);
         end
         

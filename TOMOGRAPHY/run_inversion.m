@@ -9,28 +9,34 @@ fprintf('\n=========== RUNNING INVERSION ===========\n\n')
 
 %% ALL PARMS ESTABLISHED IN PARMFILE
 % consider moving frequently changed ones to this script
-    fprintf('>  Establishing parameters\n')
+fprintf('>  Establishing parameters\n')
 run('PARMS')
+
+if par.t_ts == 1
+    Kfile = 'K_v';
+    modfile = 'model_v';
+    parfile = 'par_v';
+elseif par.t_ts == 2
+    Kfile = 'K_q';
+    modfile = 'model_q';
+    parfile = 'par_q';
+end
 
 %% read data
     fprintf('>  Reading in data and station details\n')
-data = read_data(datfile,stafile,par);
+    data = read_data(datfile,stafile,par);
 
 %% weight data
 if par.wtdata
-    fprintf('Weighting of data being altered by function wtdata\n')
-    fprintf('CHECK wtdata CAREFULLY TO SEE WHAT IT IS DOING!!\n')    
-    data.ray.wt = wtdata(data,par);
+    fprintf('>  Weighting data\n') 
+    data.ray.wt = wtdata(data);
 else
     fprintf('>  No data weighting\n')
     data.ray.wt = ones(size(data.ray.d));
 end
 
-%% delete bad orids!
-% [ data ] = wipeorids( data );
-
 %% setup tomo geom
-    fprintf('>  Setting up geometry\n')
+fprintf('>  Setting up geometry\n')
 [ data,par ] = setup_geom( data,par );
 
 %% Crustal correction
@@ -52,20 +58,11 @@ model_1 = model;
 
 if par.plot_inmodel && ~par.synth_test
     [plot_inmodel] = conv2plotable(model,par);
-    if par.force2D==0
-        plot_basic(plot_inmodel,par,2,par.saveopt)
-    else
-        plot_zslice(plot_inmodel,par,2,par.saveopt)
-    end
+    plot_Hslice(plot_inmodel,par,2,par.saveopt)
+    plot_zslice(plot_inmodel,par,2,par.saveopt)
 end
 
 %% =========== Make Kernel =============================================
-if par.t_ts == 1
-    Kfile = 'K_v';
-elseif par.t_ts == 2
-    Kfile = 'K_q';
-end
-
 if par.build_K == 0
     load(Kfile);
     if length(K.n_indx)~=data.ray.nrays || max(K.n_indx{1}) > par.nmodel
@@ -77,7 +74,6 @@ elseif par.build_K == 1
 end
 
 
-
 %% Hit quality?
 par = calc_hitcq( data,par,K );
 if par.plot_hitq
@@ -86,7 +82,6 @@ end
 
 %% Raypaths
 if par.plot_raypath
-    plot_raypaths(par,data,1);
     plot_raypaths(par,data,1);
 end
 
@@ -144,16 +139,54 @@ fprintf('Weighted variance reduction = %.2f %%\n',wvr);
 fprintf('RMS event static = %.2f s \n',rms(model.estatic))
 fprintf('RMS station static = %.2f s \n',rms(model.sstatic))
 
-plot_results_info(par,model,data,d_use,res)
-plot_model = conv2plotable(model,par);
-plot_basic(plot_model,par,1,par.saveopt)
-return
+%% high hitq res
 % [model_hq ] = hiQmodel( model,model_1,par,0.3 );
 % d_pred_hq = G*[model_hq.mval;model_hq.estatic;model_hq.sstatic];
 % res_hq     = d_use - d_pred_hq;
 % vr_hq = variance_reduction(d_use,d_pred_hq);
 % 
 % fprintf('HI-Q Variance reduction = %.2f %%\n',vr_hq);
+
+% %% Plot data and residual
+% if par.plot_data
+%     d_real = data.ray.d; % save the real data
+%     data.ray.d = res; % put synthetic data into ray struct to plot
+%     fprintf('>  Plotting residual\n')
+%     plot_data(data,par,0) % plot synthetic data
+%     data.ray.d = d_real; % put real data back in
+%     clone_figure(32,33);
+%     plot_data(data,par,0) % plot synthetic data
+%     
+% end
+
+
+%% plots
+if par.plot_outputs
+    plot_results_info(par,model,data,d_use,res)
+    plot_model = conv2plotable(model,par);
+    plot_Hmaps(plot_model,par,1,par.saveopt)
+    if par.plot_Zslices
+        plot_Zmaps(plot_model,par,data,par.saveopt)
+    end
+end
+
+%% save results
+resdir = '~/Documents/MATLAB/CASC_atten/TOMOGRAPHY/results/';
+
+save([resdir,modfile],'model','-v7.3');
+save([resdir,parfile],'par')
+
+
+return
+
+
+
+
+
+
+
+
+
 
 % some squeezing test stats...
 fprintf('\nSqueezing analysis:\n')
@@ -175,37 +208,4 @@ fprintf(' = %.2f%% of a total norm of %.2f\n',100*(norm(model.aa(indsqz))./norm(
 %% plots etc.
 load('semblance');
 par.semb = semb;
-
-save ('model','model','-v7.3');
-save data data; 
-save par par
-if par.force2D==1
-    save('model_2D','model','-v7.3')
-    save par_2D par
-end
-
-if par.plot_outputs
-
-plot_results_info(par,model,dm,data,d_use,res)
-plot_model = conv2plotable(model,par);
-if par.force2D==1
-    plot_Zmaps(plot_model,par,data,par.saveopt)
-else
-    plot_Hmaps(plot_model,par,1,par.saveopt)
-    if par.plot_Zslices
-    plot_Zmaps(plot_model,par,data,par.saveopt)
-    end
-end
-
-end
-
-
-%% Manual optional extra plots
-return
-plot_errors( data,par,res )
-plot_pretty(plot_model,par,1,1)
-plot_zslice(plot_model,par,1,1)
-plot_xy(plot_model,par,1,1)
-
-return
 

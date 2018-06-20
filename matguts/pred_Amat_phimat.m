@@ -1,5 +1,5 @@
-function [ Amat,phimat ] = pred_Amat_phimat( dtstars,dTs,A0s,fmids,alp )
-% [ Amat,phimat ] = pred_Amat_Phimat( dtstars,dTs,A0s,fmids,[alpha=0] )
+function [ Amat,phimat,dtst_pair,dT_pair ] = pred_Amat_phimat( dtstars,dTs,A0s,fmids,alp )
+% [ Amat,phimat,dtst_pair,dT_pair ] = pred_Amat_phimat( dtstars,dTs,A0s,fmids,[alpha=0] )
 %   function to compute pairwise amplitude and phase spectra, given known
 %   values of dtstar, dT, A0 for each station. 
 if nargin < 5 || isempty(alp)
@@ -12,8 +12,13 @@ Nf = length(fmids);
 
 Amat = zeros(Npair,Nf);
 phimat = zeros(Npair,Nf);
+dtst_pair = zeros(Npair);
+dT_pair = zeros(Npair);
 
 ws = 2*pi*fmids;
+
+f0=1;
+w0 = 2*pi*f0;
 
 count = 0;
 for is1 = 1:Nstas
@@ -26,14 +31,17 @@ for is2 = is1+1:Nstas
     
     if alp == 0;
         lnApred   = log(RA0) - pi*fmids*dtst;
-        phipred = -(1/pi)*log(fmids)*dtst + dtst + dT;
+        phipred = -(1/pi)*log(fmids/f0)*dtst + dtst + dT;
     else
-        lnApred = log(RA0) - 0.5*ws.^(1-alp)*dtst;
-        phipred = 0.5*ws.^(-alp).*(2*pi).^alp * cot(alp*pi/2)*dtst + dT;
+        lnApred = log(RA0) - 0.5*ws.^(1-alp) * w0^alp * dtst;
+        phipred = 0.5*cot(alp*pi/2) * (ws/w0).^(-alp) * dtst + dT;
     end
     
     Amat(count,:) = exp(lnApred);
     phimat(count,:) = phipred;    
+    dtst_pair(count,:) = dtst;
+    dT_pair(count,:) = dT;
+
 
 end
 end

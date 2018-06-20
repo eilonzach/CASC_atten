@@ -8,7 +8,7 @@ phase = 'S';
 component = 'T'; %'Z', 'R', or 'T'
 resamprate = 5 ; % new, common sample rate
 % Do filtfs [12 1] for S, and [5 1] for P
-filtfs = 1./[5 1]; % [flo fhi] = 1./[Tmax Tmin] in sec 
+filtfs = 1./[5 1]; % [ flo fhi] = 1./[Tmax Tmin] in sec 
 taperx = 0.2;
 datwind = [-200 200]; % window of data in eqar structure
 prelimwind = [-40 40];

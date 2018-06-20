@@ -1,7 +1,7 @@
 function [ dtstar_pref,dT_pref,A0_pref,alpha_pref,alpha_misfits,dtstars,dTs,A0s,misfits_amp,misfits_phi ] ...
-    = invert_allin1_Aphis_4_STA_dtdtstar_alpha( Amat,phimat,fmids,test_alphas,wtmat,amp2phiwt )
+    = invert_allin1_Aphis_4_STA_dtdtstar_alpha( Amat,phimat,fmids,test_alphas,wtmat,amp2phiwt,w0,ifplot )
 %[ dtstar_pref,dT_pref,A0_pref,alpha_pref,alpha_misfits,dtstars,dTs,A0s, misfits_amp, misfits_phi ] ...
-%     = invert_allin1_Aphis_4_STA_dtdtstar_alpha( Amat,phimat,fmids,test_alphas,wtmat,amp2phiwt )
+%     = invert_allin1_Aphis_4_STA_dtdtstar_alpha( Amat,phimat,fmids,test_alphas,wtmat,amp2phiwt,w0,ifplot )
 %   Script to simultaneously invert pairwise frequency and phase spectra
 %   for dtstar and dT at a whole array of stations, looping over a range of
 %   alpha values, solving for the best-fitting alpha and the corresponding
@@ -29,6 +29,12 @@ if nargin < 5 || isempty(wtmat)
 end
 if nargin < 6 || isempty(amp2phiwt)
     amp2phiwt = 1;
+end
+if nargin < 7 || isempty(w0)
+    w0 = 2*pi;
+end
+if nargin < 8 || isempty(ifplot)
+    ifplot = false;
 end
 
 Npair = size(Amat,1);
@@ -64,8 +70,8 @@ for ia = 1:length(test_alphas)
         Ax = -0.5*ws;
         Px = 1 - log(ws/2/pi)./pi;
     else
-        Ax = -0.5*ws.^(1-alpha);
-        Px = 0.5.*(2*pi).^alpha*cot(alpha*pi/2)*ws.^(-alpha);
+        Ax = -0.5 * w0^alpha * ws.^(1-alpha);
+        Px = 0.5 * cot(alpha*pi/2) * (ws/w0).^(-alpha);
     end
     
     % data vector: [Npair*Nf x 1] for both A and phi
@@ -129,12 +135,13 @@ dtstar_pref = dtstars(:,mindex(alpha_misfits));
 dT_pref = dTs(:,mindex(alpha_misfits));
 A0_pref = A0s(:,mindex(alpha_misfits));
 
+if ifplot
 figure(77), clf;
 plot(test_alphas,alpha_misfits,'-o')
 xlabel('F-dependency ($\alpha$)','interpreter','latex','FontSize',22)
 ylabel('Global misfit, ($\chi^2$)','interpreter','latex','FontSize',22)
 set(gca,'FontSize',14,'box','on')
-
+end
 
 
 end

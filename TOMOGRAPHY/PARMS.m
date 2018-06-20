@@ -1,12 +1,12 @@
 cd('/Users/zeilon/Documents/MATLAB/CASC_atten/TOMOGRAPHY');
 
 %% data files
-datfile = 'data/data_dT_ST.dat';
+datfile = 'data/data_dtstar_ST.dat';
 stafile  = 'data/stations.dat';
  
 if ~exist('par')==1, par=struct([]); end
 par(1).PS = 2;         % 1 for P, 2 for S
-par(1).t_ts = 1;         % 1 for dT, 2 for dtstar
+par(1).t_ts = 2;         % 1 for dT, 2 for dtstar
   
 %% inversion running parms - zero for speed
 REBUILD             = 0;
@@ -23,16 +23,16 @@ par.wtdata          = 1; % extra QCs found in wtdata.m function
 par.squeeze         = 0; % 0=no, 1=yes, 0<frac<1=force 2D for first frac of runs
 par.zsqz            = 175; %180% squeezing depth in km, if -ive then sqz to below this depth
 
-par.saveopt         = 0;
+par.saveopt         = 1;
 
 % regularisation parms
 par.age_smooth      = 0; % option to smooth points together based on age bins
 
-par.damp            = 0.4; %3 % scaling for whole damp mat: more damping parms found in dampmat.m
-	par.damp_evt    = 0.01; %1 % multiple of rest of model damping to use for evt terms
-	par.damp_stn    = 1; %1 % multiple of rest of model damping to use for stn terms
+par.damp            = 0.05;  %3 % scaling for whole damp mat: more damping parms found in dampmat.m
+	par.damp_evt    = 0.01; %1 % absolute model damping to use for evt terms
+	par.damp_stn    = 3;    %1 % absolute model damping to use for stn terms
 
-par.smooth          = 20; %3 %  scaling for whole smth mat: good result with 1 - 
+par.smooth          = 0.1; %3 %  scaling for whole smth mat: good result with 1 - 
     par.smth_zvh    = 0.5; %0.3 %  Ratio of vertical to horizontal smoothing
 
 par.scalereg        = 0; %       option to scale regularisation matrices in make_F_f

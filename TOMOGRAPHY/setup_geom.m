@@ -91,8 +91,22 @@ for iz = 1:length(par.vz)
     par.vz(iz) = quad(@(z)vel_profile(par.PS,z),zto,zbo)/(zbo-zto);    
 end
 
-
 par.mvav   = interp1(par.zz,par.vz,par.mz);
+
+%% average q 
+% calculated as mean over half-bins above and below par.zz
+Qmod = ql6;
+
+Qmu = linterp(Qmod.depth,Qmod.qu,par.mz);
+Qka = linterp(Qmod.depth,Qmod.qk,par.mz);
+
+if par.PS==1
+    L = (4/3)*(1./1.81).^2;
+    par.mQav = 1/(L./Qmu + (1-L)./Qka);
+elseif par.PS ==2;
+    par.mQav = Qmu;
+end
+
 % [~,par] = make_start_model(par); % 
 
 end

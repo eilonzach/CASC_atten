@@ -46,7 +46,7 @@ if alp==0
 elseif alp~=0
 %     G([1:N],2) = -0.5*( ws.^(1-alp) );
 %     G(N+[1:N],2) = ws.^(-alp) .* (2*pi).^(1-alp) * cot(alp*pi/2);
-    G([1:N],2) = -0.5*ws.^(1-alp)*w0.^alp ;
+    G([1:N],2) = -0.5*ws.^(1-alp) ;
     G(N+[1:N],2) = 0.5*(ws/w0).^(-alp) * cot(alp*pi/2);
 end
 G(N+[1:N],3) = 1;

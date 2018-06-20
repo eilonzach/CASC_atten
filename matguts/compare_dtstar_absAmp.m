@@ -7,10 +7,10 @@
 
 Tmin = 1;
 Tmax = 3;
-Nstas = size(all_dat0(:,indgd),2);
+Nstas = size(all_dat0_gd,2);
 
 tt = [datwind(1):1./resamprate:datwind(2)-1./resamprate]';
-datf = filt_quick(all_dat0(:,indgd),1/Tmax,1/Tmin,1./resamprate);
+datf = filt_quick(all_dat0_gd,1/Tmax,1/Tmin,1./resamprate);
 
 datwf = zeros(size(datf));
 for is = 1:Nstas

@@ -23,6 +23,7 @@ maxphi  = parms.qc.maxphi;
 amp2phiwt = parms.inv.amp2phiwt;
 fmin      = parms.inv.fmin;
 fmax      = parms.inv.fmax;
+flowph    = parms.inv.flowph;
 corc_skip = parms.inv.corr_c_skip;
 ifwt      = parms.inv.ifwt;
 
@@ -46,6 +47,7 @@ misfitnormed_pairwise = zeros(N,1);
 As_pairwise = zeros(N,Nwds);
 phis_pairwise = zeros(N,Nwds);
 wts_pairwise = zeros(N,Nwds);
+inds_pairwise = zeros(N,Nwds);
 
 %% prepare filter + cleaning parms
 % Make set of period windows for bandpass filter
@@ -118,8 +120,12 @@ for is2 = is1+1:Nstas
     u (2*(count-1)+[1 2]) = [-1 1]; % delta is value of 2 - value of 1
     
     %% Do the work of running through the comb - option to correct cycle skip
-    [ As,phis,wts ] = run_comb( dat(:,is1),dat(:,is2),fltinfo,wdo1,wdo2,jbds,dt,pretime,maxphi,corc_skip,fmin,ifplot );
+    [ As,phis,wts ] = run_comb( dat(:,is1),dat(:,is2),fltinfo,wdo1,wdo2,jbds,dt,pretime,maxphi,corc_skip,flowph,ifplot );
     if ~ifwt, wts(iw) = 1;end
+    wts(As<0) = 0;
+    As(As<0) = 0;
+    wts(phis==maxphi) = 0;
+    
 
     %% QC
     inds = (fmids<=fmax & abs(phis)<maxphi & sqrt(wts)>minacor);
@@ -127,7 +133,7 @@ for is2 = is1+1:Nstas
     if sum(inds)<4 % only do if there are at least 4 ok measurements!
         As_pairwise(count,:) = As;
         phis_pairwise(count,:) = phis;
-        wts_pairwise(count,:) = wts;
+        wts_pairwise(count,:) = zeros(size(wts));
         
         dtstar_pairwise(count) = 0;
         dT_pairwise(count) = 0;
@@ -151,7 +157,7 @@ for is2 = is1+1:Nstas
         plot(fmax*[1 1],[-1 1],'--b')
         xlabel('freq','FontSize',18), ylabel('log(Amp)','FontSize',18)
         title(sprintf('Station %.0f vs. station %.0f',is1,is2),'FontSize',20)
-        set(gca,'Xscale','linear','xlim',[0.03 1])
+        set(gca,'Xscale','linear','xlim',[0.03 fmax])
 
         subplot(212), hold on
         scatter(fmids,phis,110*wts,'or','MarkerFaceColor','r')
@@ -159,7 +165,7 @@ for is2 = is1+1:Nstas
 %         scatter(fmids(dodo),phis(dodo),100*wts(dodo),'o','MarkerFaceColor','b')
         plot(fmids,(log(fnq) - log(fmids))*dtstar./pi + dT,'g','Linewidth',1.5)
         plot(fmax*[1 1],[-1 1],'--b')  
-        set(gca,'Xscale','log','xlim',[0.03 1.],'ylim',maxphi*[-1 1])
+        set(gca,'Xscale','log','xlim',[0.03 fmax],'ylim',maxphi*[-1 1])
         title(sprintf('Misfit/N = %.3f  tstar=%.3f  dT=%.3f',misfit./length(inds),dtstar,dT),'FontSize',20)
         xlabel('log(freq)','FontSize',18), ylabel('phase-shift (s)','FontSize',18)
     end

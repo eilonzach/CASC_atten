@@ -6,10 +6,10 @@ cd /Users/zeilon/Documents/MATLAB/CASC_atten
 addpath('matguts')
 
 %% parameters
-phase = 'S';
-component = 'T'; %'Z', 'R', or 'T'
-resamprate = 40 ; % new, common sample rate
-filtfs = 1./[40 .5]; % [flo fhi] = 1./[Tmax Tmin] in sec
+phase = 'P';
+component = 'Z'; %'Z', 'R', or 'T'
+resamprate = 4 ; % new, common sample rate
+filtfs = 1./[40 1]; % [flo fhi] = 1./[Tmax Tmin] in sec
 taperx = 0.2;
 datwind = [-160 165]; % window of data in eqar structure
 specwind = [-5 30];
@@ -21,7 +21,7 @@ overwrite = true;
 ifOBSonly = false;
 ifusecorZ = false;
 ifplot    = false;
-ifsave    = false;
+ifsave    = true;
 ifplotonly = false;
 
 % combspec parms
@@ -30,6 +30,7 @@ parms.comb.Tmax = 20;
 parms.comb.Nwds = 30;
 parms.comb.Tw_opt = 'scale';
 parms.comb.npol = 4;
+parms.comb.resamprate = resamprate;
 
 parms.wind.pretime = -datwind(1);
 parms.wind.prex = specwind(1);
@@ -45,9 +46,8 @@ parms.inv.fmax = 0.5; % nominal - reset below according to fcross
 parms.inv.corr_c_skip = true;
 parms.inv.ifwt = true;
 
-parms.inv.alpha = 0.25;
+parms.inv.alpha = 0.0;
 
-test_alphas = [0:0.05:0.5];
 
 %% directories 
 % ANTELOPE DB DETAILS
@@ -69,7 +69,8 @@ dbclose(db);
 
 obsstr = ''; if ifOBSonly, obsstr = 'OBS_'; end
 
-for ie = 298:298 % 44:norids % loop on orids
+
+for ie = 1:350 % 44:norids % loop on orids
 %     if  mags(ie)<6.9, continue, end
     tic
     fprintf('\n Orid %.0f %s \n\n',orids(ie),epoch2str(evtimes(ie),'%Y-%m-%d %H:%M:%S'))
@@ -116,7 +117,12 @@ for ie = 298:298 % 44:norids % loop on orids
     %% ------------------ GRAB DATA IN RIGHT FORMAT ------------------
     % prep data structures
     nstas = length(datinfo);
-    all_dat0  = zeros(resamprate*diff(datwind),nstas);
+    all_dat0  = zeros(unique([eqar.samprate])*diff(datwind),nstas);
+    
+    % calc dc timeshift from abs to pred
+    yx = false(nstas,1);
+    for is = 1:nstas, yx(is)=~isempty(eqar(is).abs_arrT); end
+    dcTshft = mean([eqar(yx).pred_arrT] - [eqar(yx).abs_arrT]);
 
     % LOOP ON STAS
     for is = 1:nstas
@@ -127,8 +133,8 @@ for ie = 298:298 % 44:norids % loop on orids
         if strcmp(eqar(is).sta,'M08C'), eqar(is).slon = -124.895400; end
 
         % SHIFT TRACES USING Predicted ARRIVAL TIME 
+        att = eqar(is).tt-eqar(is).pred_arrT + dcTshft; % shift to since predicted arrival 
         % shift so arrival is at time=0
-        att = eqar(is).tt-eqar(is).pred_arrT; % shift to since absolute arrival
         ja = (att >= datwind(1)) & (att < datwind(2)); % excerpt times according to datwind
         
         % GRAB DESIRED COMPONENT
@@ -144,7 +150,7 @@ for ie = 298:298 % 44:norids % loop on orids
         
         fprintf('got data\n')
     end % loop on stas
-    
+
     % find OBS stas
     isob = zeros(size(eqar)); for is = 1:length(eqar), isob(is) = ~isempty(which_OBS(eqar(is).sta)); end, 
     
@@ -156,26 +162,52 @@ for ie = 298:298 % 44:norids % loop on orids
     if ~isfield(eqar,'snr_wf'), continue; end % skip if snr not even calculated
     indgd([eqar(indgd).snr_wf]<snrmin)                  = []; % kill low snr traces
     if length(indgd) < 2, fprintf('NO GOOD TRACES/ARRIVALS, skip...\n'), continue, end
-
+    
+    % only keep good stas
+    all_dat0_gd = all_dat0(:,indgd);
+    
     %% Pick fmax from crossing freqs
     parms.inv.fmax = nanmean([eqar(indgd).fcross]');
+    
+    %% resamp - speeds up the combing
+    fprintf('resampling to %.0f Hz\n',resamprate);
+    if 1/resamprate>0.5*parms.comb.Tmin, error('resamprate too small for the stated highest comb-filter\n'); end
+    tt0 = att(ja)';
+    tt1 = [tt0(1):1/resamprate:tt0(end)]';
+    nsamps = length(tt1); nstas = size(all_dat0_gd,2);
+    all_dat0_resamp = zeros(nsamps,nstas);
+    for is = 1:nstas
+        all_dat0_resamp(:,is) = interp1(tt0,all_dat0_gd(:,is),tt1);
+    end
 
     %% RUN THROUGH COMB
-    [delta_tstar_comb,delta_T_comb,std_dtstar_comb,pairwise,fmids] = combspectra(all_dat0(:,indgd),resamprate,parms,0);
 
-    %% ------------------ ALL-IN-ONE INVERSION + ALPHAS ------------------
+    [delta_tstar_comb,delta_T_comb,std_dtstar_comb,pairwise,fmids] = combspectra(all_dat0_resamp,resamprate,parms,0);
     Amat = pairwise.As;
     phimat = pairwise.phis;
     wtmat = double(pairwise.inds).*pairwise.wts;
     
-    [ delta_tstar_pref,delta_T_pref,A0_pref,alpha_pref,alpha_misfits ] ...
-        = calc_fdependent( Amat,phimat,fmids,test_alphas,wtmat,parms.inv.amp2phiwt,1,['Orid ',num2str(orids(ie))] );
-    continue
+    %% SAVE PAIRWISE SPECTRA 
+    fprintf('%.0f Amp measurements\n',numel(Amat));
+    sts = {datinfo(indgd).sta};
+    save(sprintf('results_pairspecs/%.0f_pairspecs_%s%s',orids(ie),phase,component),'pairwise','sts')
     
-    %% Assign preferred values
-    delta_tstar_use = delta_tstar_pref;
-    delta_T_use = delta_T_pref;
-    parms.inv.alpha = alpha_pref;
+    %% ------------------ ALL-IN-ONE INVERSION  ------------------
+    [ delta_tstar_a0,delta_T_a0,A0_a0,~,~ ] ...
+        = calc_fdependent( Amat,phimat,fmids,0,wtmat,parms.inv.amp2phiwt,1,['Orid ',num2str(orids(ie))] );
+    
+    %% ------------------  TEST FOR ALPHAS  ------------------
+%     test_alphas = [0:0.05:0.9];
+%     
+%     [ delta_tstar_pref,delta_T_pref,A0_pref,alpha_pref,alpha_VR ] ...
+%         = calc_fdependent( Amat,phimat,fmids,test_alphas,wtmat,parms.inv.amp2phiwt,1,['Orid ',num2str(orids(ie))] );
+%     close all
+    
+    %% Assign a0 values
+    
+    delta_tstar_use = delta_tstar_a0;
+    delta_T_use = delta_T_a0;
+    parms.inv.alpha = 0;
 
     %% ---------------------- STORE RESULTS -----------------------
     % STORE RESULTS
@@ -200,7 +232,7 @@ for ie = 298:298 % 44:norids % loop on orids
     
 	%% -------------------------- PLOTS ---------------------------
     if ifplot
-    compare_dtstar_absAmp
+%     compare_dtstar_absAmp
     plot_ATTEN_TandF_domain_COMB( eqar )
     end % ifplot
 

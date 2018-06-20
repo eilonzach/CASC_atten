@@ -1,18 +1,30 @@
-% script to build body wave dataset
-% uses antelope origin table and site(chan) tables, looping through and
+% Script to build body wave dataset
+% 
+% Uses antelope origin table and site(chan) tables, looping through and
 % then using the IRISrequest tools to get and store the data in a directory
 % tree where each event has a folder containing .mat files that are the
-% data for each staition.
-% clear all
-close all
-cd ~/Documents/MATLAB/CASC_atten
-% mount_drive('DATA','zeilon','eilon.ldeo.columbia.edu')
+% data for each station.
+% 
+% N.B. this could be significantly sped up by using a different request
+% format/algorithm, but this one gives maximal control/certainty about what
+% data you are getting.
+% 
+% N.B.2 Make sure to have allocated sufficient Java Heap Memory for this,
+% or the request will fail sometimes. At least 1000 MB.
+%  (go to MATLAB Preferences > MATLAB > General > Java Heap Memory)
+% 
+% Z. Eilon
+
+clear all
+% global wd DATADIR DBNAM DBDIR 
+
+% cd(wd)
 
 datawind = [-100 1700]; % time window in seconds after event to [start end]
 
 phases = 'P,S,PKS,SKS';
 
-overwrite = false;
+overwrite = true;
 
 resamprate = 5; % leave empty or zero to use existing samprate
 
@@ -20,33 +32,34 @@ getnoise = true;
 OBSnoiseprewind = [-43200 0]; % time window in seconds after event to [start end] <== 12 hours in advance
 
 % antelope db details
-dbdir = '/Users/zeilon/Work/CASCADIA/CAdb/'; % needs final slash
-dbnam = 'cascBIGdb';
+DBDIR = '/Users/zeilon/Work/CASCADIA/CAdb/'; % needs final slash
+DBNAM = 'cascBIGdb';
 
 % path to top level of directory tree for data
-datadir = '/Volumes/DATA_mini2/CASCADIA/DATA/'; % needs final slash
-% datadir = '~/Work/CASCADIA/DATA/';
+DATADIR = '/Volumes/DATA/CASCADIA/DATA/'; % needs final slash
+% DATADIR = '~/Work/CASCADIA/DATA/';
 
 javaaddpath('/Users/zeilon/Documents/MATLAB/IRIS-WS-2.0.15.jar')
 javaaddpath('IRIS-WS-2.0.15.jar')
 addpath('matguts')
 
+global wd DATADIR DBNAM DBDIR 
 
 %% get event details
-db = dbopen([dbdir,dbnam],'r');
+db = dbopen([DBDIR,DBNAM],'r');
 dbor = dblookup_table(db,'origin');
 [orids,elats,elons,edeps,evtimes] = dbgetv(dbor,'orid','lat','lon','depth','time');
 norids = dbnrecs(dbor);
 dbclose(db);
 
 %% get station details
-db = dbopen([dbdir,dbnam],'r');
+db = dbopen([DBDIR,DBNAM],'r');
 dbsi = dblookup_table(db,'site');
 [stas,slats,slons,selevs,nwk,statype] = dbgetv(dbsi,'sta','lat','lon','elev','refsta','statype');
 nstas = dbnrecs(dbsi);
 dbclose(db);
 
-for ie = 221:221 % 1:norids
+for ie = 299:379 % 1:norids
     % sort out event stuff
     orid = orids(ie);
     elat = elats(ie); elon = elons(ie); edep = edeps(ie); 
@@ -54,10 +67,10 @@ for ie = 221:221 % 1:norids
     evdir = [num2str(orid,'%03d'),'_',epoch2str(evtime,'%Y%m%d%H%M')];
     
     % make event directory
-    if exist([datadir,evdir],'dir')~=7, mkdir(datadir,evdir); end
+    if exist([DATADIR,evdir],'dir')~=7, mkdir(DATADIR,evdir); end
     
     % datinfo
-    datinfofile = [datadir,evdir,'/_datinfo'];
+    datinfofile = [DATADIR,evdir,'/_datinfo'];
     if exist([datinfofile,'.mat'],'file')~=2 || overwrite==true
         datinfo = struct('sta',[],'chans',[],'NEZ',false,'rmresp',false,'rmtilt',false,'rmcomp',false,'spectra',false);
     else
@@ -68,12 +81,12 @@ for ie = 221:221 % 1:norids
     fprintf('REQUESTING DATA FOR EVENT %.0f (%s)\n',orid,evdir)
     for is = 1:nstas % 1:nstas
         sta = stas{is};
-        datafile = [datadir,evdir,'/',stas{is}];
+        datafile = [DATADIR,evdir,'/',stas{is}];
         
         if overwrite==false && exist([datafile,'.mat'],'file')==2, continue; end
         
         % this is where we'll pull out the channel and station on/off info
-        db = dbopen([dbdir,dbnam],'r');
+        db = dbopen([DBDIR,DBNAM],'r');
         dbsch = dblookup_table(db,'sitechan');
         dbschs = dbsubset(dbsch,sprintf('sta == "%s"',stas{is}));
         nchans = dbnrecs(dbschs);
@@ -116,9 +129,12 @@ for ie = 221:221 % 1:norids
         else
             sta_use = sta;
         end
-        fprintf('   request station %.0f %s... ',is,stas{is})
+%         fprintf('   request station %.0f %s... ',is,stas{is})
+        fprintf('   request station %.0f %s %s %s (%s - %s) ',is,nwk{is},sta_use,chreq,STARTtime_str,ENDtime_str)
         
-        % ======== GET THE DATA =======
+         % ======== GET THE DATA =======
+        clear trace; % to be really, really sure
+%         trace=irisFetch.Traces(nwk{is},sta_use,'*',chreq,STARTtime_str,ENDtime_str,'VERBOSE');
         trace=irisFetch.Traces(nwk{is},sta_use,'*',chreq,STARTtime_str,ENDtime_str);
         
         if isempty(trace), fprintf('NO DATA\n'); continue; end
@@ -147,6 +163,13 @@ for ie = 221:221 % 1:norids
 
         % SAMPRATE
         if resamprate
+%            fprintf('need to apply a low-pass filter to the data too!\n')
+            for id = 1:length(trace)
+                % anti-aliasing filter - low pass below resamprate/2             
+                trace(id).data = filt_quick( trace(id).data,...
+                trace(id).sampleRate./trace(id).sampleCount,...
+                resamprate/2,1./trace(id).sampleRate);
+            end
             samprate = resamprate;
         else
             samprate = round(unique([trace.sampleRate]));
@@ -179,7 +202,7 @@ for ie = 221:221 % 1:norids
         dat(:,id) = interp1(linspace(serial2epoch(trace(id).startTime),...
                                      serial2epoch(trace(id).endTime),...
                                      trace(id).sampleCount),...
-                                     trace(id).data,    tt);
+                                     trace(id).data,    tt); % this does the downsampling
         end
                
         % fix nans

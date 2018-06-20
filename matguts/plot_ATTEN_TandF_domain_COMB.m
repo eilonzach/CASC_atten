@@ -196,7 +196,7 @@ figure(2), clf, set(gcf,'position',[150 000 600 800]), hold on
 for is = 1:length(eqar_plot)
 	tt = eqar_plot(is).tt-eqar_plot(is).abs_arrT;
 
-    hp = plot(tt,5*dd(:,is)/max(max(abs(dd))) + Xord_plot(is),'LineWidth',2);
+    hp = plot(tt,3*dd(:,is)/max(max(abs(dd))) + Xord_plot(is),'LineWidth',2);
     set(hp,'color',colour_get(abs(eqar_plot(is).Xrdg),Xrdglims_plot(2),Xrdglims_plot(1),flipud(jet)))
     text(datwind(1)+2,Xord_plot(is)+0.4,eqar_plot(is).sta,...
         'FontSize',8,'interpreter','latex','HorizontalAlignment','left')

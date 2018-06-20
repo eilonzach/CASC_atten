@@ -70,7 +70,7 @@ topo_cor_S = -selevs/3400; % add this to dT, it is positive if the elevation is 
 if strcmp(phase,'P'), topo_cor = topo_cor_P; elseif strcmp(phase,'S'), topo_cor = topo_cor_S; end
 % sta_terms = sta_terms + topo_cor;
 % sta_terms = sta_terms - mean(sta_terms);
-all_dT = all_dT + topo_cor_S*ones(1,size(all_dT,2));
+all_dT = all_dT + topo_cor*ones(1,size(all_dT,2));
 
 %% ------------------ MAP WITH DT FOR THIS EVENT ------------------
 

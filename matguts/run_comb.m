@@ -1,5 +1,5 @@
-function [ As,phis,wts ] = run_comb( dat1,dat2,fltinfo,wdo1,wdo2,jbds,dt,pretime,maxphi,cor_c_skip,fmin,ifplot )
-% [ As,phis,wts ] = run_comb( dat1,dat2,fltdat,wdo1,wdo2,jbds,dt,pretime,maxphi,corcskip,fmin,ifplot )
+function [ As,phis,wts ] = run_comb( dat1,dat2,fltinfo,wdo1,wdo2,jbds,dt,pretime,maxphi,cor_c_skip,flowph,ifplot )
+% [ As,phis,wts ] = run_comb( dat1,dat2,fltdat,wdo1,wdo2,jbds,dt,pretime,maxphi,corcskip,flowph,ifplot )
 %  function to run through the comb of filters and calcultate the phase
 %  shift and amplitude scaling (as well as weight assigned) for each
 %  narrow-band filter. Option whether or not to use low frequencies to do
@@ -53,7 +53,7 @@ function [ As,phis,wts ] = run_comb( dat1,dat2,fltinfo,wdo1,wdo2,jbds,dt,pretime
         phi_f_obs = diff(dcor);
 
             if cor_c_skip
-                if fmids(iw) > fmin
+                if fmids(iw) > flowph
                     Npi = -2:1:2; % try cycle shifts of up to 4pi in either direction
                     E = zeros(length(Npi),1);
                     phshifts = Npi*(1./fmids(iw));
